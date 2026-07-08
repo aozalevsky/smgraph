@@ -1,6 +1,6 @@
 # Vendored libraries
 
-Downloaded for a fully-offline, self-contained `smtree.html`.
+Downloaded for a fully-offline, self-contained `smgraph.html`.
 
 | File | Version | Source URL | Date |
 |------|---------|------------|------|

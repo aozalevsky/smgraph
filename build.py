@@ -1,4 +1,4 @@
-"""Assemble a single self-contained smtree.html.
+"""Assemble a single self-contained smgraph.html.
 
 Inlines the vendored JS libraries and the base64-encoded dataset into the HTML
 template so the result works offline with no external requests.
@@ -23,10 +23,10 @@ def build_html(template, data_json, libs):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Build self-contained smtree.html")
-    ap.add_argument("--template", default="smtree.template.html")
+    ap = argparse.ArgumentParser(description="Build self-contained smgraph.html")
+    ap.add_argument("--template", default="smgraph.template.html")
     ap.add_argument("--data", default="data/thrombin.json")
-    ap.add_argument("--out", default="smtree.html")
+    ap.add_argument("--out", default="smgraph.html")
     a = ap.parse_args(argv)
     libs = {
         "__FORCEGRAPH__": open("vendor/force-graph.min.js").read(),

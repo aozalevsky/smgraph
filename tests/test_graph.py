@@ -1,4 +1,4 @@
-from smtree.graph import assemble_graph, classify_origin, compute_generations
+from smgraph.graph import assemble_graph, classify_origin, compute_generations
 
 
 def test_classify_origin():

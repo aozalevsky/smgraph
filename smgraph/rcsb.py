@@ -27,7 +27,7 @@ _GQL = """query($ids:[String!]!){ entries(entry_ids:$ids){
 def _default_opener(url, data=None):
     req = urllib.request.Request(
         url, data=data,
-        headers={"Content-Type": "application/json", "User-Agent": "smtree/1.0"})
+        headers={"Content-Type": "application/json", "User-Agent": "smgraph/1.0"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read()
 

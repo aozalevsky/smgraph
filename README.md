@@ -1,4 +1,4 @@
-# smtree — Starting Model Graph
+# smgraph — Starting Model Graph
 
 *Genealogy of structures.* Collect molecular-replacement **starting-model
 provenance** from the RCSB PDB and render it as an interactive web graph — a
@@ -8,13 +8,13 @@ When a structure is solved by molecular replacement (MR), it is built starting
 from a previously-solved structure (its *starting model*). The PDB records this in
 the mmCIF category `pdbx_initial_refinement_model`. Chaining these relationships
 gives a directed acyclic graph back to structures with no recorded starting model
-(generation 0). `smtree` collects that graph and lets you explore it in the
+(generation 0). `smgraph` collects that graph and lets you explore it in the
 browser.
 
 **A missing starting-model record does not mean a structure was originally
 phased.** Many MR structures cite their starting model only in free text, which
 is not machine-readable. So for every node with no recorded starting model,
-`smtree` reads the experimental phasing method (`_refine.pdbx_method_to_determine_struct`)
+`smgraph` reads the experimental phasing method (`_refine.pdbx_method_to_determine_struct`)
 and labels it as one of:
 
 - **experimentally phased** — a genuine root (SAD, MAD, MIR, …);
@@ -48,13 +48,13 @@ lineage back through seven generations of starting models.*
 ## Two parts
 
 ```
-collect.py  ──►  data/thrombin.json  ──►  build.py  ──►  smtree.html
+collect.py  ──►  data/thrombin.json  ──►  build.py  ──►  smgraph.html
 (RCSB API)       (graph: nodes+edges)     (+ vendor/)     (self-contained page)
 ```
 
 - **`collect.py`** queries the RCSB Search + Data (GraphQL) APIs, follows every
   structure's starting models upward through ancestry, and writes a graph JSON.
-- **`smtree.html`** is a single self-contained page (graph library + dataset
+- **`smgraph.html`** is a single self-contained page (graph library + dataset
   inlined) that opens in any browser offline. It renders with `force-graph`
   (a live d3-force simulation on canvas), is fully responsive, and can load any
   JSON produced by `collect.py`. It embeds the thrombin dataset by default.
@@ -64,17 +64,17 @@ Only the Python standard library is needed to run `collect.py` and `build.py`
 
 ## Quick start
 
-The built `smtree.html` is already in the repo — just open it:
+The built `smgraph.html` is already in the repo — just open it:
 
 ```bash
-xdg-open smtree.html      # or double-click it
+xdg-open smgraph.html      # or double-click it
 ```
 
 To regenerate everything from scratch:
 
 ```bash
 python collect.py --uniprot P00734 --out data/thrombin.json   # fetch data
-python build.py                                               # -> smtree.html
+python build.py                                               # -> smgraph.html
 ```
 
 ## Using the visualization
@@ -108,7 +108,7 @@ python collect.py --query-file myquery.json --out data/custom.json        # raw 
 ```
 
 Then either rebuild the page against the new file
-(`python build.py --data data/trypsin.json`) or just open `smtree.html` and use
+(`python build.py --data data/trypsin.json`) or just open `smgraph.html` and use
 **Upload JSON…** to drop the file in.
 
 > Note: `--uniprot` (the default, `P00734`) gives a precise, biologically coherent
@@ -145,7 +145,7 @@ placeholder with `missing: true` if its metadata was not fetched).
 
 ```bash
 python -m pytest -q                 # unit tests (no network)
-SMTREE_LIVE=1 python -m pytest -q   # also runs the live RCSB integration test
+SMGRAPH_LIVE=1 python -m pytest -q   # also runs the live RCSB integration test
 ```
 
 Design and implementation notes live in `docs/superpowers/`. Vendored libraries

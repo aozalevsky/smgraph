@@ -38,8 +38,8 @@ def test_walk_respects_max_depth():
     assert set(got) == {"C"}                     # no ancestry rounds
 
 
-@pytest.mark.skipif(os.environ.get("SMTREE_LIVE") != "1",
-                    reason="set SMTREE_LIVE=1 to hit the RCSB API")
+@pytest.mark.skipif(os.environ.get("SMGRAPH_LIVE") != "1",
+                    reason="set SMGRAPH_LIVE=1 to hit the RCSB API")
 def test_live_small(tmp_path):
     out = tmp_path / "small.json"
     main(["--uniprot", "P00734", "--limit", "40", "--out", str(out)])

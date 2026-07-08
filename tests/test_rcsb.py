@@ -1,4 +1,4 @@
-from smtree.rcsb import build_search_query, normalize_entry
+from smgraph.rcsb import build_search_query, normalize_entry
 
 
 def test_build_search_query_uniprot():

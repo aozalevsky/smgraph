@@ -1,6 +1,6 @@
 """Pure graph logic for starting-model provenance.
 
-No I/O. Consumes normalized entry dicts (see smtree.rcsb.normalize_entry) and
+No I/O. Consumes normalized entry dicts (see smgraph.rcsb.normalize_entry) and
 produces the JSON graph described in the design doc section 7.
 """
 

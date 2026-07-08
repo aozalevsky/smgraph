@@ -475,8 +475,12 @@ function applyFilters() {
 // Restart the layout AND the render loop. force-graph stops its animation loop
 // once the graph settles; d3ReheatSimulation() alone only resets alpha, so the
 // loop must be resumed or nothing ticks (layout toggle / filter / shake / drag).
-function relayout() {
+function relayout() {              // re-settle AND refit (node set / layout changed)
   pendingFit = true;
+  fg.d3ReheatSimulation();
+  fg.resumeAnimation();
+}
+function reheatOnly() {            // re-settle but keep the current zoom/pan
   fg.d3ReheatSimulation();
   fg.resumeAnimation();
 }
@@ -583,7 +587,8 @@ function initGraph() {
         ctx.lineWidth = 2.2; ctx.strokeStyle = COL.hl;
         ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5, 0, 2 * Math.PI); ctx.stroke();
       }
-      if (scale > 1.4 || r * scale > 11) {
+      // Always label hub structures (stable set); add detail as you zoom in.
+      if (n.childCount >= 2 || r * scale > 5) {
         const fs = Math.max(3.5, 9 / scale);
         const ly = n.y + r + 1.5;
         ctx.font = `${fs}px system-ui, sans-serif`;
@@ -605,7 +610,7 @@ function initGraph() {
     .onNodeClick(n => { highlightLineage(n.id); showInfo(n); renderBurst(); })
     .onBackgroundClick(() => { clearHighlight(); hideInfo(); renderBurst(); })
     .onNodeDrag(() => fg.resumeAnimation())              // keep sim live while dragging
-    .onNodeDragEnd(n => { n.fx = undefined; n.fy = undefined; relayout(); })  // spring back
+    .onNodeDragEnd(n => { n.fx = undefined; n.fy = undefined; fg.resumeAnimation(); })  // spring back, keep view
     .onEngineStop(() => {
       if (pendingFit) { pendingFit = false; fg.zoomToFit(500, 45); }
       hideLoading();
@@ -626,7 +631,7 @@ function wire() {
     const b = e.target.closest('button'); if (b) runLayout(b.dataset.layout);
   });
   document.getElementById('fitBtn').addEventListener('click', () => fg.zoomToFit(400, 45));
-  document.getElementById('reheatBtn').addEventListener('click', relayout);
+  document.getElementById('reheatBtn').addEventListener('click', reheatOnly);
   document.getElementById('themeBtn').addEventListener('click', toggleTheme);
   document.getElementById('hideIsolated').addEventListener('change', applyFilters);
   document.getElementById('genMax').addEventListener('input', e =>
