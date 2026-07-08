@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Starting Model Tree</title>
+<title>Starting Model Graph — Genealogy of structures</title>
 <style>
   :root {
     --page:#f9f9f7; --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b;
@@ -132,6 +132,16 @@
   #scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 8;
            display: none; }
 
+  #loading { position: absolute; inset: 0; z-index: 7; display: flex;
+             align-items: center; justify-content: center; gap: 10px;
+             background: var(--surface); color: var(--ink-2); font-size: 13px;
+             opacity: 0; visibility: hidden; transition: opacity .3s ease; }
+  #loading.show { opacity: 1; visibility: visible; }
+  #loading .spin { width: 18px; height: 18px; border: 2px solid var(--hair);
+                   border-top-color: var(--accent); border-radius: 50%;
+                   animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* ---- responsive: collapse sidebar into a drawer on narrow screens ---- */
   @media (max-width: 760px) {
     #menuBtn { display: inline-block; }
@@ -151,7 +161,7 @@
 <body>
 <header>
   <button class="btn" id="menuBtn" aria-label="Toggle controls">☰</button>
-  <h1>Starting Model Tree <span class="sub">· PDB molecular-replacement provenance</span></h1>
+  <h1>Starting Model Graph <span class="sub">· Genealogy of structures</span></h1>
   <div class="stats" id="stats"></div>
   <span class="spacer"></span>
   <div class="toolbar">
@@ -212,6 +222,7 @@
 
   <div class="stage">
     <div id="cy"></div>
+    <div id="loading"><span class="spin"></span> Building layout…</div>
     <div id="scrim"></div>
     <div id="banner"></div>
     <div id="info">
@@ -327,6 +338,15 @@ function collide(radiusOf, padding, strength, iterations) {
   return force;
 }
 
+// force-graph stops its render loop when idle; after a purely visual change
+// (theme, highlight) nudge it to paint a few frames so nothing goes stale.
+function renderBurst(frames) {
+  if (!fg) return;
+  let k = frames || 4;
+  const tick = () => { fg.resumeAnimation(); if (--k > 0) requestAnimationFrame(tick); };
+  tick();
+}
+
 function refreshTheme() {
   const dark = isDark();
   COL.ink = cssVar('--ink');
@@ -338,7 +358,7 @@ function refreshTheme() {
   COL.border = dark ? 'rgba(255,255,255,0.35)' : 'rgba(11,11,11,0.30)';
   COL.miss = dark ? '#3a3a37' : '#d8d7d0';
   COL.mr = dark ? '#e0a92e' : '#b8860b';   // gold: MR, starting model not recorded
-  if (fg) { fg.backgroundColor(COL.surface); fg.resumeAnimation(); }
+  if (fg) { fg.backgroundColor(COL.surface); renderBurst(); }
   buildLegend();
 }
 
@@ -489,8 +509,13 @@ function buildModel(graph) {
   }
   maxGen = nodeObjs.reduce((m, n) => Math.max(m, n.gen), 0);
 }
+function showLoading() { document.getElementById('loading').classList.add('show'); }
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+
 function loadGraph(graph) {
   window.__graph = graph;
+  showLoading();
+  setTimeout(hideLoading, 9000);   // fallback so it can never get stuck
   buildModel(graph);
   const slider = document.getElementById('genMax');
   slider.max = String(maxGen); slider.value = String(maxGen);
@@ -555,10 +580,16 @@ function initGraph() {
       }
       if (scale > 1.4 || r * scale > 11) {
         const fs = Math.max(3.5, 9 / scale);
+        const ly = n.y + r + 1.5;
         ctx.font = `${fs}px system-ui, sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        // halo in the surface colour so the label reads on any background/theme
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = fs * 0.42;
+        ctx.strokeStyle = COL.surface;
+        ctx.strokeText(n.id, n.x, ly);
         ctx.fillStyle = COL.ink;
-        ctx.fillText(n.id, n.x, n.y + r + 1.5);
+        ctx.fillText(n.id, n.x, ly);
       }
       ctx.globalAlpha = 1;
     })
@@ -566,11 +597,14 @@ function initGraph() {
       ctx.fillStyle = color;
       ctx.beginPath(); ctx.arc(n.x, n.y, nodeRadius(n) + 2, 0, 2 * Math.PI); ctx.fill();
     })
-    .onNodeClick(n => { highlightLineage(n.id); showInfo(n); fg.resumeAnimation(); })
-    .onBackgroundClick(() => { clearHighlight(); hideInfo(); fg.resumeAnimation(); })
+    .onNodeClick(n => { highlightLineage(n.id); showInfo(n); renderBurst(); })
+    .onBackgroundClick(() => { clearHighlight(); hideInfo(); renderBurst(); })
     .onNodeDrag(() => fg.resumeAnimation())              // keep sim live while dragging
     .onNodeDragEnd(n => { n.fx = undefined; n.fy = undefined; relayout(); })  // spring back
-    .onEngineStop(() => { if (pendingFit) { pendingFit = false; fg.zoomToFit(500, 45); } });
+    .onEngineStop(() => {
+      if (pendingFit) { pendingFit = false; fg.zoomToFit(500, 45); }
+      hideLoading();
+    });
   // Layout heuristic: a collision force guarantees no overlap; medium-range
   // charge (capped so separate components don't fling to the edges) does the
   // spacing; a light gravity keeps everything gathered near the centre.
@@ -599,7 +633,7 @@ function wire() {
     const n = nodeById.get(id);
     const shown = n && fg.graphData().nodes.some(x => x.id === id);
     if (shown) {
-      foundId = id; highlightLineage(id); showInfo(n); fg.resumeAnimation();
+      foundId = id; highlightLineage(id); showInfo(n); renderBurst();
       if (n.x != null) { fg.centerAt(n.x, n.y, 500); fg.zoom(2.2, 500); }
     } else if (n) { banner('"' + id + '" is hidden by the current filters.'); }
     else { banner('No structure "' + id + '" in this graph.'); }

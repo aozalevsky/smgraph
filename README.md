@@ -1,7 +1,8 @@
-# smtree — Starting Model Tree
+# smtree — Starting Model Graph
 
-Collect molecular-replacement **starting-model provenance** from the RCSB PDB and
-render it as an interactive web graph — a "family tree" of structures.
+*Genealogy of structures.* Collect molecular-replacement **starting-model
+provenance** from the RCSB PDB and render it as an interactive web graph — a
+"family tree" of structures.
 
 When a structure is solved by molecular replacement (MR), it is built starting
 from a previously-solved structure (its *starting model*). The PDB records this in
@@ -23,6 +24,14 @@ and labels it as one of:
 In the thrombin demo, of 216 nodes with no recorded parent, only **3** are
 confirmed experimental roots; 70 were solved by MR with the parent unrecorded, and
 143 are unknown.
+
+**All experimental methods are collected** — the demo set is 483 X-ray, 11
+cryo-EM, and 3 NMR structures, and starting models are captured for any of them
+(the deepest node, `9CTH`, is a cryo-EM map built from X-ray thrombins). The
+"experimentally phased" root label comes from the crystallographic phasing method,
+so cryo-EM / NMR structures with no recorded starting model fall under "provenance
+not recorded" — there is no phasing-method field to confirm a de-novo origin, and
+we do not assume one.
 
 ![Force view of the human thrombin starting-model graph](docs/img/screenshot-force.png)
 
