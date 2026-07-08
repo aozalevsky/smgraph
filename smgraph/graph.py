@@ -1,8 +1,40 @@
 """Pure graph logic for starting-model provenance.
 
-No I/O. Consumes normalized entry dicts (see smtree.rcsb.normalize_entry) and
+No I/O. Consumes normalized entry dicts (see smgraph.rcsb.normalize_entry) and
 produces the JSON graph described in the design doc section 7.
 """
+
+import re
+
+# Experimental phasing methods (structure determined without a prior model).
+_EXPERIMENTAL_TOKENS = (
+    "SAD", "MAD", "SIR", "MIR", "ISOMORPHOUS", "ANOMALOUS",
+    "AB INITIO", "AB-INITIO", "DIRECT METHOD",
+    "SINGLE WAVELENGTH", "MULTIPLE WAVELENGTH", "MULTI-WAVELENGTH",
+)
+
+
+def classify_origin(has_parent, phasing_method):
+    """Why does a structure have no *recorded* PDB starting model?
+
+    - "derived": it does have a recorded PDB starting model (not a graph root).
+    - "experimental": phased experimentally (SAD/MAD/MIR/...), a genuine root.
+    - "mr_unrecorded": solved by molecular replacement, so it HAS a starting
+      model, but that model is not recorded in the PDB metadata (e.g. mentioned
+      only in free text). NOT a true root.
+    - "unknown": no phasing method recorded, so we cannot tell. We must not
+      assume it was experimentally phased.
+    """
+    if has_parent:
+        return "derived"
+    m = (phasing_method or "").upper()
+    if not m:
+        return "unknown"
+    if "MOLECULAR REPLACEMENT" in m or re.search(r"\bMR\b", m):
+        return "mr_unrecorded"
+    if any(tok in m for tok in _EXPERIMENTAL_TOKENS):
+        return "experimental"
+    return "unknown"
 
 
 def compute_generations(parents_of):
@@ -80,6 +112,8 @@ def assemble_graph(entries, seed_ids, generated_utc):
         sm_type = None
         if e and e.get("starting_models"):
             sm_type = (e["starting_models"][0] or {}).get("type")
+        has_parent = bool(parents_of.get(i))
+        phasing = (e or {}).get("phasing_method")
         nodes.append({
             "id": i,
             "title": (e or {}).get("title"),
@@ -92,6 +126,8 @@ def assemble_graph(entries, seed_ids, generated_utc):
             "in_query": i in seed_ids,
             "child_count": child_count.get(i, 0),
             "sm_type": sm_type,
+            "phasing_method": phasing,
+            "origin": classify_origin(has_parent, phasing),
             "missing": e is None,
         })
 

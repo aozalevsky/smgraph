@@ -1,4 +1,4 @@
-"""Assemble a single self-contained smtree.html.
+"""Assemble a single self-contained smgraph.html.
 
 Inlines the vendored JS libraries and the base64-encoded dataset into the HTML
 template so the result works offline with no external requests.
@@ -23,20 +23,22 @@ def build_html(template, data_json, libs):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Build self-contained smtree.html")
-    ap.add_argument("--template", default="smtree.template.html")
+    ap = argparse.ArgumentParser(description="Build self-contained smgraph.html")
+    ap.add_argument("--template", default="smgraph.template.html")
     ap.add_argument("--data", default="data/thrombin.json")
-    ap.add_argument("--out", default="smtree.html")
+    ap.add_argument("--out", default="smgraph.html")
     a = ap.parse_args(argv)
     libs = {
-        "__CYTOSCAPE__": open("vendor/cytoscape.min.js").read(),
-        "__DAGRE__": open("vendor/dagre.min.js").read(),
-        "__CYDAGRE__": open("vendor/cytoscape-dagre.js").read(),
+        "__FORCEGRAPH__": open("vendor/force-graph.min.js").read(),
     }
     html = build_html(open(a.template).read(), open(a.data).read(), libs)
-    with open(a.out, "w") as f:
-        f.write(html)
-    print(f"Wrote {a.out}: {len(html)} bytes")
+    outputs = [a.out]
+    if a.out != "index.html":
+        outputs.append("index.html")   # so the app is served at the GitHub Pages root
+    for path in outputs:
+        with open(path, "w") as f:
+            f.write(html)
+    print(f"Wrote {', '.join(outputs)}: {len(html)} bytes")
 
 
 if __name__ == "__main__":

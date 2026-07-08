@@ -1,62 +1,113 @@
-# smtree — Starting Model Tree
+# smgraph — Starting Model Graph
 
-Collect molecular-replacement **starting-model provenance** from the RCSB PDB and
-render it as an interactive web graph — a "family tree" of structures.
+*Genealogy of structures.* Collect molecular-replacement **starting-model
+provenance** from the RCSB PDB and render it as an interactive web graph — a
+"family tree" of structures.
 
-When a structure is solved by molecular replacement, it is built starting from a
-previously-solved structure (its *starting model*). The PDB records this in the
-mmCIF category `pdbx_initial_refinement_model`. Chaining these relationships gives
-a directed acyclic graph back to the structures that were phased experimentally
-(the **roots**, generation 0). `smtree` collects that graph and lets you explore
-it in the browser.
+When a structure is solved by molecular replacement (MR), it is built starting
+from a previously-solved structure (its *starting model*). The PDB records this in
+the mmCIF category `pdbx_initial_refinement_model`. Chaining these relationships
+gives a directed acyclic graph back to structures with no recorded starting model
+(generation 0). `smgraph` collects that graph and lets you explore it in the
+browser.
 
-![Hierarchy view: the seminal thrombin structure 1PPB and its descendants](docs/img/screenshot-hierarchy.png)
+**A missing starting-model record does not mean a structure was originally
+phased.** Many MR structures cite their starting model only in free text, which
+is not machine-readable. So for every node with no recorded starting model,
+`smgraph` reads the experimental phasing method (`_refine.pdbx_method_to_determine_struct`)
+and labels it as one of:
+
+- **experimentally phased** — a genuine root (SAD, MAD, MIR, …);
+- **MR, starting model not recorded** — it *has* a parent, just not in the metadata;
+- **provenance not recorded** — no phasing method given, so we can't tell.
+
+In the thrombin demo, of 216 nodes with no recorded parent, only **3** are
+confirmed experimental roots; 70 were solved by MR with the parent unrecorded, and
+143 are unknown.
+
+**All experimental methods are collected** — the demo set is 483 X-ray, 11
+cryo-EM, and 3 NMR structures, and starting models are captured for any of them
+(the deepest node, `9CTH`, is a cryo-EM map built from X-ray thrombins). The
+"experimentally phased" root label comes from the crystallographic phasing method,
+so cryo-EM / NMR structures with no recorded starting model fall under "provenance
+not recorded" — there is no phasing-method field to confirm a de-novo origin, and
+we do not assume one.
+
+![Force view of the human thrombin starting-model graph](docs/img/screenshot-force.png)
 
 *The demo dataset is human thrombin (UniProt P00734): 497 structures, up to 7
-generations deep. Above, clicking the seminal 1989 structure **1PPB** traces its
-descendants — dozens of later thrombin structures were built starting from it.*
+generations deep. The live force simulation (WebGL-fast canvas via `force-graph`)
+clusters the families and hubs; drag any node and its edges stretch and the graph
+springs back.*
+
+![Clicking a node traces its lineage back to the roots](docs/img/screenshot-lineage.png)
+
+*Clicking the deepest structure (`9CTH`, a 2024 cryo-EM map) highlights its full
+lineage back through seven generations of starting models.*
 
 ## Two parts
 
 ```
-collect.py  ──►  data/thrombin.json  ──►  build.py  ──►  smtree.html
+collect.py  ──►  data/thrombin.json  ──►  build.py  ──►  smgraph.html
 (RCSB API)       (graph: nodes+edges)     (+ vendor/)     (self-contained page)
 ```
 
 - **`collect.py`** queries the RCSB Search + Data (GraphQL) APIs, follows every
   structure's starting models upward through ancestry, and writes a graph JSON.
-- **`smtree.html`** is a single self-contained page (graph library + dataset
-  inlined) that opens in any browser offline. It embeds the thrombin dataset and
-  can also load any JSON produced by `collect.py`.
+- **`smgraph.html`** is a single self-contained page (graph library + dataset
+  inlined) that opens in any browser offline. It renders with `force-graph`
+  (a live d3-force simulation on canvas), is fully responsive, and can load any
+  JSON produced by `collect.py`. It embeds the thrombin dataset by default.
 
 Only the Python standard library is needed to run `collect.py` and `build.py`
 (`pytest` is used for the tests only).
 
 ## Quick start
 
-The built `smtree.html` is already in the repo — just open it:
+The built `smgraph.html` is already in the repo — just open it:
 
 ```bash
-xdg-open smtree.html      # or double-click it
+xdg-open smgraph.html      # or double-click it
 ```
 
 To regenerate everything from scratch:
 
 ```bash
 python collect.py --uniprot P00734 --out data/thrombin.json   # fetch data
-python build.py                                               # -> smtree.html
+python build.py                                               # -> smgraph.html + index.html
 ```
+
+## Deployment (GitHub Pages)
+
+The app is a single static file, so hosting is just serving `index.html`
+(`build.py` writes it alongside `smgraph.html`). To publish:
+
+```bash
+git push -u origin main
+```
+
+Then in the repo: **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**.
+The app appears at `https://<user>.github.io/<repo>/`. The live *Fetch from RCSB*
+feature works there — it's served over HTTPS and RCSB's APIs are CORS-open.
 
 ## Using the visualization
 
-- **Layout toggle** — *Hierarchy* (generations stacked top-to-bottom, roots on
-  top) or *Force* (organic clustering that surfaces hubs).
+- **Fetch by UniProt** — type a UniProt accession (e.g. `P00760`) and the page
+  builds that protein's genealogy live from the RCSB API, right in the browser
+  (no `collect.py` run needed). Replaces the current graph.
+- **Drag any node** — the live physics simulation stretches its edges and the
+  graph springs back into shape.
+- **Layout toggle** — *Force* (organic clustering that surfaces hubs; the default)
+  or *Hierarchy* (generations stacked top-to-bottom, roots on top). Both are live
+  and draggable.
 - **Click a node** — highlights its lineage back to the root(s) and opens an info
   panel with method, resolution, release year, organism, and a link to RCSB.
 - **Search** — type a PDB ID (e.g. `1PPB`) and press Enter to locate it.
-- **Filters** — *Hide unconnected structures* (on by default) and *Generations ≤ N*.
+- **Filters** — *Hide unconnected structures* (off by default) and *Generations ≤ N*.
+- **Fit / Shake** — recenter the view, or reheat the simulation to re-settle it.
 - **Upload JSON** — load a graph for any other protein (see below).
 - **Theme** — light/dark toggle; also follows your OS setting.
+- **Responsive** — on narrow screens the controls collapse into a drawer (☰).
 
 Node **color** encodes generation; node **size** is proportional to how many
 structures were derived from it (hub influence); **arrows** point from a starting
@@ -64,7 +115,13 @@ model to the structure built on it.
 
 ## Visualizing a different protein
 
-`collect.py` works for any RCSB query, not just thrombin:
+The quickest way is **in the browser**: type a UniProt accession into the
+*Fetch from RCSB* box. The page runs the same pipeline client-side (search →
+GraphQL → ancestry walk → classify) and swaps in the new graph. This is scoped to
+one protein at a time by UniProt; tracing an arbitrary leaf structure's full
+lineage across the whole PDB would need a full-graph dump (future work).
+
+For a reusable file, `collect.py` works for any RCSB query, not just thrombin:
 
 ```bash
 python collect.py --uniprot P00760 --out data/trypsin.json   # by UniProt accession
@@ -73,7 +130,7 @@ python collect.py --query-file myquery.json --out data/custom.json        # raw 
 ```
 
 Then either rebuild the page against the new file
-(`python build.py --data data/trypsin.json`) or just open `smtree.html` and use
+(`python build.py --data data/trypsin.json`) or just open `smgraph.html` and use
 **Upload JSON…** to drop the file in.
 
 > Note: `--uniprot` (the default, `P00734`) gives a precise, biologically coherent
@@ -110,7 +167,7 @@ placeholder with `missing: true` if its metadata was not fetched).
 
 ```bash
 python -m pytest -q                 # unit tests (no network)
-SMTREE_LIVE=1 python -m pytest -q   # also runs the live RCSB integration test
+SMGRAPH_LIVE=1 python -m pytest -q   # also runs the live RCSB integration test
 ```
 
 Design and implementation notes live in `docs/superpowers/`. Vendored libraries

@@ -1,4 +1,4 @@
-from smtree.rcsb import build_search_query, normalize_entry
+from smgraph.rcsb import build_search_query, normalize_entry
 
 
 def test_build_search_query_uniprot():
@@ -19,6 +19,7 @@ def test_build_search_query_text():
 def test_normalize_entry_full():
     raw = {"rcsb_id": "4UD9", "struct": {"title": "Thrombin complex"},
            "exptl": [{"method": "X-RAY DIFFRACTION"}],
+           "refine": [{"pdbx_method_to_determine_struct": "MOLECULAR REPLACEMENT"}],
            "rcsb_accession_info": {"initial_release_date": "2015-08-26T00:00:00Z"},
            "rcsb_entry_info": {"resolution_combined": [1.124]},
            "polymer_entities": [{"rcsb_entity_source_organism":
@@ -29,6 +30,7 @@ def test_normalize_entry_full():
     n = normalize_entry(raw)
     assert n["title"] == "Thrombin complex"
     assert n["method"] == "X-RAY DIFFRACTION"
+    assert n["phasing_method"] == "MOLECULAR REPLACEMENT"
     assert n["resolution"] == 1.124
     assert n["year"] == 2015
     assert n["organism"] == "Homo sapiens"
@@ -40,3 +42,4 @@ def test_normalize_entry_sparse():
                          "pdbx_initial_refinement_model": None})
     assert n["resolution"] is None and n["year"] is None
     assert n["organism"] is None and n["starting_models"] == []
+    assert n["phasing_method"] is None

@@ -11,8 +11,8 @@ import json
 import os
 import sys
 
-from smtree.graph import assemble_graph
-from smtree.rcsb import build_search_query, fetch_entries, search_entry_ids
+from smgraph.graph import assemble_graph
+from smgraph.rcsb import build_search_query, fetch_entries, search_entry_ids
 
 
 def _pdb_parents(entry):

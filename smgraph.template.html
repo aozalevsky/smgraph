@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Starting Model Graph — Genealogy of structures</title>
+<style>
+  :root {
+    --page:#f9f9f7; --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b;
+    --ink-2:#52514e; --muted:#898781; --hair:#e1e0d9; --accent:#2a78d6;
+    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10); --mr:#b8860b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page:#0d0d0d; --surface:#1a1a19; --panel:#202020; --ink:#ffffff;
+      --ink-2:#c3c2b7; --muted:#898781; --hair:#2c2c2a; --accent:#3987e5;
+      --highlight:#d95926; --shadow:rgba(0,0,0,0.5); --mr:#e0a92e;
+    }
+  }
+  :root[data-theme="light"] {
+    --page:#f9f9f7; --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b;
+    --ink-2:#52514e; --muted:#898781; --hair:#e1e0d9; --accent:#2a78d6;
+    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10); --mr:#b8860b;
+  }
+  :root[data-theme="dark"] {
+    --page:#0d0d0d; --surface:#1a1a19; --panel:#202020; --ink:#ffffff;
+    --ink-2:#c3c2b7; --muted:#898781; --hair:#2c2c2a; --accent:#3987e5;
+    --highlight:#d95926; --shadow:rgba(0,0,0,0.5); --mr:#e0a92e;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink); background: var(--page);
+    display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
+    padding: 9px 14px; background: var(--surface);
+    border-bottom: 1px solid var(--hair); flex: none;
+  }
+  header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: .2px;
+              white-space: nowrap; }
+  header h1 .sub { color: var(--muted); font-weight: 400; }
+  .stats { display: flex; gap: 8px 14px; flex-wrap: wrap; color: var(--ink-2);
+           font-variant-numeric: tabular-nums; font-size: 12.5px; }
+  .stats b { color: var(--ink); font-weight: 650; }
+  header .spacer { flex: 1 1 8px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .btn {
+    font: inherit; font-size: 12.5px; color: var(--ink); cursor: pointer;
+    background: var(--panel); border: 1px solid var(--hair); border-radius: 7px;
+    padding: 5px 10px; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--muted); }
+  .seg { display: inline-flex; border: 1px solid var(--hair); border-radius: 7px;
+         overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  #menuBtn { display: none; }
+
+  main { display: flex; flex: 1; min-height: 0; position: relative; }
+
+  aside {
+    width: 236px; flex: none; background: var(--surface);
+    border-right: 1px solid var(--hair); padding: 14px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .group h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); margin: 0 0 2px; font-weight: 650; }
+  label.row { display: flex; align-items: center; gap: 8px; font-size: 13px;
+              color: var(--ink-2); cursor: pointer; }
+  input[type="search"], input[type="text"] {
+    width: 100%; font: inherit; font-size: 13px; padding: 6px 9px;
+    border: 1px solid var(--hair); border-radius: 7px; background: var(--panel);
+    color: var(--ink);
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .rangeval { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .hint { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+  .legend { display: flex; flex-direction: column; gap: 5px; }
+  .legend .item { display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+                  color: var(--ink-2); }
+  .swatch { width: 14px; height: 14px; border-radius: 50%; flex: none;
+            border: 1px solid var(--shadow); }
+  .swatch.ring { background: transparent; border: 2px solid var(--ink); }
+  .swatch.mr   { background: transparent; border: 2px solid var(--mr); }
+  .swatch.plain{ background: var(--muted); opacity: .6; }
+  .swatch.dash { background: transparent; border: 1.5px dashed var(--muted); }
+
+  .stage { position: relative; flex: 1; min-width: 0; background: var(--surface); }
+  #cy { position: absolute; inset: 0; }
+  #cy canvas { display: block; }
+
+  #info {
+    position: absolute; top: 12px; right: 12px; width: 258px; max-width: 70%;
+    background: var(--panel); border: 1px solid var(--hair); border-radius: 10px;
+    box-shadow: 0 6px 24px var(--shadow); padding: 14px; display: none; z-index: 4;
+  }
+  #info.show { display: block; }
+  #info .close { position: absolute; top: 8px; right: 10px; cursor: pointer;
+                 color: var(--muted); border: 0; background: none; font-size: 16px; }
+  #info h3 { margin: 0 0 2px; font-size: 16px; letter-spacing: .3px; }
+  #info .title { color: var(--ink-2); font-size: 12.5px; margin-bottom: 10px; }
+  #info dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px;
+             margin: 0; font-size: 12.5px; }
+  #info dt { color: var(--muted); }
+  #info dd { margin: 0; text-align: right; color: var(--ink);
+             font-variant-numeric: tabular-nums; }
+  #info a.rcsb { display: inline-block; margin-top: 11px; font-size: 12.5px;
+                 color: var(--accent); text-decoration: none; font-weight: 600; }
+  #info a.rcsb:hover { text-decoration: underline; }
+  .pill { display: inline-block; font-size: 10.5px; padding: 1px 7px; border-radius: 20px;
+          background: var(--accent); color: #fff; vertical-align: middle; margin-left: 6px; }
+  .pill.miss { background: var(--muted); }
+  .pill.mr { background: var(--mr); color: #1a1a19; }
+  #info .provenance { margin-top: 10px; font-size: 12px; color: var(--ink-2);
+                      line-height: 1.45; }
+
+  #banner {
+    position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+    background: var(--highlight); color: #fff; padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; display: none; box-shadow: 0 4px 14px var(--shadow); z-index: 6;
+    max-width: 90%; text-align: center;
+  }
+  #banner.show { display: block; }
+  #scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 8;
+           display: none; }
+
+  #loading { position: absolute; inset: 0; z-index: 7; display: flex;
+             align-items: center; justify-content: center; gap: 10px;
+             background: var(--surface); color: var(--ink-2); font-size: 13px;
+             opacity: 0; visibility: hidden; transition: opacity .3s ease; }
+  #loading.show { opacity: 1; visibility: visible; }
+  #loading .spin { width: 18px; height: 18px; border: 2px solid var(--hair);
+                   border-top-color: var(--accent); border-radius: 50%;
+                   animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- responsive: collapse sidebar into a drawer on narrow screens ---- */
+  @media (max-width: 760px) {
+    #menuBtn { display: inline-block; }
+    header h1 .sub { display: none; }
+    aside {
+      position: absolute; z-index: 9; top: 0; bottom: 0; left: 0; width: 82vw;
+      max-width: 300px; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 4px 0 24px var(--shadow);
+    }
+    body.drawer-open aside { transform: translateX(0); }
+    body.drawer-open #scrim { display: block; }
+    #info { width: auto; left: 10px; right: 10px; max-width: none; top: auto;
+            bottom: 10px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <button class="btn" id="menuBtn" aria-label="Toggle controls">☰</button>
+  <h1>Starting Model Graph <span class="sub">· Genealogy of structures</span></h1>
+  <div class="stats" id="stats"></div>
+  <span class="spacer"></span>
+  <div class="toolbar">
+    <div class="seg" id="layoutSeg">
+      <button class="btn active" data-layout="force">Force</button>
+      <button class="btn" data-layout="hier">Hierarchy</button>
+    </div>
+    <button class="btn" id="fitBtn">Fit</button>
+    <button class="btn" id="reheatBtn">Shake</button>
+    <button class="btn" id="themeBtn">◐ Theme</button>
+  </div>
+</header>
+
+<main>
+  <aside id="sidebar">
+    <div class="group">
+      <h2>Find</h2>
+      <input type="search" id="search" placeholder="PDB ID, e.g. 1PPB" autocomplete="off">
+      <div class="hint">Click a node to trace its lineage back to the root(s).
+        Drag any node — the edges stretch and the graph springs back.</div>
+    </div>
+
+    <div class="group">
+      <h2>Filters</h2>
+      <label class="row"><input type="checkbox" id="hideIsolated">
+        Hide unconnected structures</label>
+      <label class="row" style="justify-content:space-between">
+        <span>Generations ≤ <span class="rangeval" id="genMaxVal">–</span></span></label>
+      <input type="range" id="genMax" min="0" max="7" value="7" step="1">
+    </div>
+
+    <div class="group">
+      <h2>Load data</h2>
+      <input type="search" id="uniprot" placeholder="UniProt ID, e.g. P00734" autocomplete="off">
+      <button class="btn" id="fetchBtn">Fetch from RCSB</button>
+      <label class="btn" style="text-align:center">
+        Upload JSON…
+        <input type="file" id="upload" accept="application/json,.json" hidden>
+      </label>
+      <div class="hint">Fetch any protein's genealogy live by UniProt accession, or
+        upload a JSON from <code>collect.py</code>. Either replaces the current graph.</div>
+    </div>
+
+    <div class="group">
+      <h2>Generation</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="group">
+      <h2>Provenance</h2>
+      <div class="legend">
+        <div class="item"><span class="swatch ring"></span> Experimentally phased (root)</div>
+        <div class="item"><span class="swatch mr"></span> MR — starting model not recorded</div>
+        <div class="item"><span class="swatch plain"></span> Provenance not recorded</div>
+        <div class="item"><span class="swatch dash"></span> Referenced, not fetched</div>
+        <div class="item"><span class="swatch" style="background:var(--highlight);border:none"></span> Highlighted lineage</div>
+      </div>
+      <div class="hint">A missing starting-model record does <b>not</b> mean a structure was originally phased — many MR structures cite their starting model only in free text. Only structures with an experimental phasing method are marked as roots. Node size ∝ structures derived from it; arrows point from a starting model to the structure built on it.</div>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <div id="cy"></div>
+    <div id="loading"><span class="spin"></span> <span id="loadingText">Building layout…</span></div>
+    <div id="scrim"></div>
+    <div id="banner"></div>
+    <div id="info">
+      <button class="close" id="infoClose">×</button>
+      <div id="infoBody"></div>
+    </div>
+  </div>
+</main>
+
+<script>/*__FORCEGRAPH__*/</script>
+<script>
+"use strict";
+
+// ---- embedded dataset (base64 of the collect.py JSON) --------------------
+const DATA_B64 = "__DATA_B64__";
+function decodeData(b64) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+// ---- generation palette (validated blue ordinal ramp) --------------------
+const GEN_LIGHT = ['#86b6ef','#6da7ec','#5598e7','#3987e5','#2a78d6','#256abf','#184f95','#0d366b'];
+const GEN_DARK  = ['#cde2fb','#b7d3f6','#9ec5f4','#86b6ef','#6da7ec','#5598e7','#3987e5','#184f95'];
+function isDark() {
+  const t = document.documentElement.getAttribute('data-theme');
+  if (t) return t === 'dark';
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function genColor(g) {
+  const ramp = isDark() ? GEN_DARK : GEN_LIGHT;
+  return ramp[Math.min(g, ramp.length - 1)];
+}
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// ---- module state --------------------------------------------------------
+let fg = null;
+let currentLayout = 'force';
+let maxGen = 0;
+let nodeObjs = [];                 // stable node objects (force-graph mutates x/y)
+let nodeById = new Map();
+let fgLinksRaw = [];               // {s: parentId, t: childId, kind}
+let parentsOf = new Map();         // childId -> [parentId,...] (ancestry)
+let degreeById = new Map();
+let highlightActive = false;
+let highlightNodes = new Set();
+let highlightLinks = new Set();
+let foundId = null;
+let pendingFit = false;
+const COL = {};
+
+function nodeRadius(n) { return 3 + Math.sqrt(n.childCount || 0) * 1.4; }
+
+// A custom d3-force: pull every node gently toward the origin so disconnected
+// components and loose nodes stay compact instead of drifting to the edges.
+function centerGravity(strength) {
+  let nodes = [];
+  function force(alpha) {
+    const k = strength * alpha;
+    for (const n of nodes) { n.vx -= n.x * k; n.vy -= n.y * k; }
+  }
+  force.initialize = n => { nodes = n; };
+  return force;
+}
+
+// A custom collision force (force-graph doesn't bundle d3's forceCollide).
+// Treats each node as a circle of radiusOf(node)+padding and nudges overlapping
+// pairs apart via their velocities (mass-weighted by radius, like d3-force). A
+// uniform-grid broad phase keeps it ~O(n) so it scales to thousands of nodes.
+function collide(radiusOf, padding, strength, iterations) {
+  let nodes = [];
+  let radii = [];
+  function force() {
+    const n = nodes.length;
+    if (!n) return;
+    let maxR = 1;
+    for (let i = 0; i < n; i++) { radii[i] = radiusOf(nodes[i]) + padding; if (radii[i] > maxR) maxR = radii[i]; }
+    const cell = maxR * 2;
+    for (let it = 0; it < iterations; it++) {
+      const grid = new Map();
+      for (let i = 0; i < n; i++) {
+        const k = Math.floor(nodes[i].x / cell) + ':' + Math.floor(nodes[i].y / cell);
+        let b = grid.get(k); if (!b) { b = []; grid.set(k, b); }
+        b.push(i);
+      }
+      for (let i = 0; i < n; i++) {
+        const a = nodes[i];
+        const gx = Math.floor(a.x / cell), gy = Math.floor(a.y / cell);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+          const b = grid.get((gx + dx) + ':' + (gy + dy));
+          if (!b) continue;
+          for (let m = 0; m < b.length; m++) {
+            const j = b[m]; if (j <= i) continue;
+            const c = nodes[j];
+            const rr = radii[i] + radii[j];
+            let X = (a.x + a.vx) - (c.x + c.vx);
+            let Y = (a.y + a.vy) - (c.y + c.vy);
+            let d2 = X * X + Y * Y;
+            if (d2 >= rr * rr) continue;
+            if (d2 === 0) { a.vx += (Math.random() - 0.5); a.vy += (Math.random() - 0.5); continue; }
+            const d = Math.sqrt(d2);
+            const l = (rr - d) / d * strength;
+            const ratio = radii[j] * radii[j] / (radii[i] * radii[i] + radii[j] * radii[j]);
+            a.vx += X * l * ratio; a.vy += Y * l * ratio;
+            c.vx -= X * l * (1 - ratio); c.vy -= Y * l * (1 - ratio);
+          }
+        }
+      }
+    }
+  }
+  force.initialize = nds => { nodes = nds; radii = new Array(nds.length); };
+  return force;
+}
+
+// force-graph stops its render loop when idle; after a purely visual change
+// (theme, highlight) nudge it to paint a few frames so nothing goes stale.
+function renderBurst(frames) {
+  if (!fg) return;
+  let k = frames || 4;
+  const tick = () => { fg.resumeAnimation(); if (--k > 0) requestAnimationFrame(tick); };
+  tick();
+}
+
+function refreshTheme() {
+  const dark = isDark();
+  COL.ink = cssVar('--ink');
+  COL.surface = cssVar('--surface');
+  COL.muted = cssVar('--muted');
+  COL.hl = cssVar('--highlight');
+  COL.edge = dark ? 'rgba(150,150,143,0.55)' : 'rgba(120,119,113,0.55)';
+  COL.edgeFaded = 'rgba(130,130,124,0.12)';
+  COL.border = dark ? 'rgba(255,255,255,0.35)' : 'rgba(11,11,11,0.30)';
+  COL.miss = dark ? '#3a3a37' : '#d8d7d0';
+  COL.mr = dark ? '#e0a92e' : '#b8860b';   // gold: MR, starting model not recorded
+  if (fg) { fg.backgroundColor(COL.surface); renderBurst(); }
+  buildLegend();
+}
+
+const ORIGIN_LABEL = {
+  experimental: 'Experimentally phased (root)',
+  mr_unrecorded: 'Molecular replacement — starting model not recorded',
+  unknown: 'Provenance not recorded',
+  derived: 'Built from a recorded starting model',
+};
+
+// ---- lineage highlight ---------------------------------------------------
+function highlightLineage(id) {
+  const lineage = new Set([id]);
+  const stack = [id];
+  while (stack.length) {
+    const cur = stack.pop();
+    for (const p of (parentsOf.get(cur) || [])) {
+      if (!lineage.has(p)) { lineage.add(p); stack.push(p); }
+    }
+  }
+  highlightNodes = lineage;
+  highlightLinks = new Set();
+  for (const l of fg.graphData().links) {
+    const s = typeof l.source === 'object' ? l.source.id : l.source;
+    const t = typeof l.target === 'object' ? l.target.id : l.target;
+    if (lineage.has(s) && lineage.has(t)) highlightLinks.add(l);
+  }
+  highlightActive = true;
+}
+function clearHighlight() {
+  highlightActive = false; highlightNodes = new Set();
+  highlightLinks = new Set(); foundId = null;
+}
+
+// ---- info panel ----------------------------------------------------------
+function fmt(v, suffix) {
+  return (v === null || v === undefined || v === '') ? '–' : (v + (suffix || ''));
+}
+function showInfo(n) {
+  const m = n.meta;
+  let pill = '';
+  if (n.missing) pill = '<span class="pill miss">not fetched</span>';
+  else if (n.origin === 'experimental') pill = '<span class="pill">phased</span>';
+  else if (n.origin === 'mr_unrecorded') pill = '<span class="pill mr">MR</span>';
+  document.getElementById('infoBody').innerHTML = `
+    <h3>${m.id}${pill}</h3>
+    <div class="title">${fmt(m.title)}</div>
+    <dl>
+      <dt>Generation</dt><dd>${n.gen}</dd>
+      <dt>Derived structures</dt><dd>${n.childCount}</dd>
+      <dt>Method</dt><dd>${fmt(m.method)}</dd>
+      <dt>Phasing</dt><dd>${fmt(m.phasing_method)}</dd>
+      <dt>Resolution</dt><dd>${m.resolution != null ? m.resolution.toFixed(2) + ' Å' : '–'}</dd>
+      <dt>Released</dt><dd>${fmt(m.year)}</dd>
+      <dt>Organism</dt><dd>${fmt(m.organism)}</dd>
+      <dt>In query set</dt><dd>${m.in_query ? 'yes' : 'no'}</dd>
+    </dl>
+    <div class="provenance">${ORIGIN_LABEL[n.origin] || n.origin}${
+      n.origin === 'mr_unrecorded' || n.origin === 'unknown'
+        ? ' — a starting model may exist but is not in the PDB metadata.' : ''}</div>
+    <a class="rcsb" href="https://www.rcsb.org/structure/${m.id}" target="_blank" rel="noopener">
+      View ${m.id} on RCSB PDB →</a>`;
+  document.getElementById('info').classList.add('show');
+}
+function hideInfo() { document.getElementById('info').classList.remove('show'); }
+
+// ---- stats + legend ------------------------------------------------------
+function updateStats() {
+  const d = fg ? fg.graphData() : { nodes: [], links: [] };
+  const q = (window.__graph && window.__graph.meta && window.__graph.meta.query) || '—';
+  document.getElementById('stats').innerHTML =
+    `<span>Query <b>${q}</b></span>` +
+    `<span><b>${d.nodes.length}</b> shown</span>` +
+    `<span><b>${d.links.length}</b> links</span>` +
+    `<span>Deepest gen <b>${maxGen}</b></span>`;
+}
+function buildLegend() {
+  let html = '';
+  for (let i = 0; i <= maxGen; i++) {
+    html += `<div class="item"><span class="swatch" style="background:${genColor(i)}"></span>
+             Generation ${i}${i === 0 ? ' (root)' : ''}</div>`;
+  }
+  document.getElementById('legend').innerHTML = html;
+}
+
+// ---- filtering (rebuilds the visible graph) ------------------------------
+function visibleData() {
+  const genMax = +document.getElementById('genMax').value;
+  const hideIso = document.getElementById('hideIsolated').checked;
+  const vis = new Set();
+  for (const n of nodeObjs) {
+    if (n.gen > genMax) continue;
+    if (hideIso && (degreeById.get(n.id) || 0) === 0) continue;
+    vis.add(n.id);
+  }
+  const nodes = nodeObjs.filter(n => vis.has(n.id));
+  const links = fgLinksRaw
+    .filter(l => vis.has(l.s) && vis.has(l.t))
+    .map(l => ({ source: l.s, target: l.t, kind: l.kind }));
+  return { nodes, links };
+}
+function applyFilters() {
+  clearHighlight();
+  fg.graphData(visibleData());
+  relayout();
+  updateStats();
+}
+
+// Restart the layout AND the render loop. force-graph stops its animation loop
+// once the graph settles; d3ReheatSimulation() alone only resets alpha, so the
+// loop must be resumed or nothing ticks (layout toggle / filter / shake / drag).
+function relayout() {              // re-settle AND refit (node set / layout changed)
+  pendingFit = true;
+  fg.d3ReheatSimulation();
+  fg.resumeAnimation();
+}
+function reheatOnly() {            // re-settle but keep the current zoom/pan
+  fg.d3ReheatSimulation();
+  fg.resumeAnimation();
+}
+
+// ---- layout --------------------------------------------------------------
+function runLayout(name) {
+  currentLayout = name;
+  document.querySelectorAll('#layoutSeg button').forEach(b =>
+    b.classList.toggle('active', b.dataset.layout === name));
+  fg.dagMode(name === 'hier' ? 'td' : null);
+  relayout();
+}
+
+// ---- (re)load a graph ----------------------------------------------------
+function validateGraph(g) {
+  return g && typeof g === 'object' && Array.isArray(g.nodes) &&
+         Array.isArray(g.edges) && g.nodes.every(n => n && n.id);
+}
+function buildModel(graph) {
+  nodeObjs = graph.nodes.map(n => ({
+    id: n.id, gen: n.generation || 0, root: !!n.is_root, missing: !!n.missing,
+    origin: n.origin || 'unknown', childCount: n.child_count || 0, meta: n,
+  }));
+  nodeById = new Map(nodeObjs.map(n => [n.id, n]));
+  // Force-graph link direction: parent (starting model) -> child (derived),
+  // so DAG 'td' puts roots on top and arrows point ancestor -> descendant.
+  fgLinksRaw = graph.edges.map(e => ({ s: e.target, t: e.source, kind: e.type }));
+  parentsOf = new Map();
+  degreeById = new Map();
+  for (const e of graph.edges) {                 // e.source = child, e.target = parent
+    if (!parentsOf.has(e.source)) parentsOf.set(e.source, []);
+    parentsOf.get(e.source).push(e.target);
+    degreeById.set(e.source, (degreeById.get(e.source) || 0) + 1);
+    degreeById.set(e.target, (degreeById.get(e.target) || 0) + 1);
+  }
+  maxGen = nodeObjs.reduce((m, n) => Math.max(m, n.gen), 0);
+}
+function showLoading(text) {
+  if (text) document.getElementById('loadingText').textContent = text;
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+
+function loadGraph(graph) {
+  window.__graph = graph;
+  showLoading('Building layout…');
+  setTimeout(hideLoading, 9000);   // fallback so it can never get stuck
+  buildModel(graph);
+  const slider = document.getElementById('genMax');
+  slider.max = String(maxGen); slider.value = String(maxGen);
+  document.getElementById('genMaxVal').textContent = maxGen;
+  clearHighlight();
+  fg.graphData(visibleData());
+  fg.dagMode(currentLayout === 'hier' ? 'td' : null);
+  relayout();
+  buildLegend();
+  updateStats();
+}
+
+// ---- theme ---------------------------------------------------------------
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = (cur === 'dark' || (!cur && isDark())) ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  refreshTheme();
+}
+
+// ---- banner --------------------------------------------------------------
+let bannerTimer = null;
+function banner(msg) {
+  const b = document.getElementById('banner');
+  b.textContent = msg; b.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => b.classList.remove('show'), 4500);
+}
+
+// ---- live RCSB fetch: build a genealogy graph in the browser ----------
+// Mirrors collect.py / smgraph.graph so a fetched graph matches an uploaded one.
+const RCSB = (() => {
+  const SEARCH_URL = 'https://search.rcsb.org/rcsbsearch/v2/query';
+  const GRAPHQL_URL = 'https://data.rcsb.org/graphql';
+  const UNIPROT_ATTR = 'rcsb_polymer_entity_container_identifiers'
+    + '.reference_sequence_identifiers.database_accession';
+  const GQL = `query($ids:[String!]!){ entries(entry_ids:$ids){
+    rcsb_id struct{title} exptl{method} refine{ pdbx_method_to_determine_struct }
+    rcsb_accession_info{initial_release_date} rcsb_entry_info{resolution_combined}
+    polymer_entities{ rcsb_entity_source_organism{ ncbi_scientific_name } }
+    pdbx_initial_refinement_model{ accession_code source_name type } } }`;
+  const EXP_TOKENS = ['SAD', 'MAD', 'SIR', 'MIR', 'ISOMORPHOUS', 'ANOMALOUS',
+    'AB INITIO', 'AB-INITIO', 'DIRECT METHOD', 'SINGLE WAVELENGTH',
+    'MULTIPLE WAVELENGTH', 'MULTI-WAVELENGTH'];
+
+  async function fetchJson(url, opts, ms) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), ms || 30000);
+    try {
+      const r = await fetch(url, Object.assign({ signal: ctl.signal }, opts || {}));
+      if (!r.ok) throw new Error('RCSB returned HTTP ' + r.status);
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
+
+  async function searchEntryIds(uniprot) {
+    const body = {
+      query: { type: 'terminal', service: 'text', parameters: {
+        attribute: UNIPROT_ATTR, operator: 'exact_match', value: uniprot } },
+      return_type: 'entry',
+      request_options: { return_all_hits: true, results_content_type: ['experimental'] },
+    };
+    const url = SEARCH_URL + '?json=' + encodeURIComponent(JSON.stringify(body));
+    const d = await fetchJson(url);
+    return (d.result_set || []).map(x => x.identifier);
+  }
+
+  function first(a) { return (a && a.length) ? a[0] : null; }
+  function normalize(raw) {
+    const rl = (raw.rcsb_entry_info || {}).resolution_combined;
+    const date = (raw.rcsb_accession_info || {}).initial_release_date;
+    let org = null; const pe = first(raw.polymer_entities || []);
+    if (pe) { const so = first(pe.rcsb_entity_source_organism || []); if (so) org = so.ncbi_scientific_name; }
+    const ex = first(raw.exptl || []); const rf = first(raw.refine || []);
+    return {
+      title: (raw.struct || {}).title || null,
+      method: ex ? ex.method : null,
+      phasing_method: rf ? rf.pdbx_method_to_determine_struct : null,
+      resolution: (rl && rl.length) ? rl[0] : null,
+      year: date ? parseInt(date.slice(0, 4), 10) : null,
+      organism: org,
+      starting_models: raw.pdbx_initial_refinement_model || [],
+    };
+  }
+
+  async function fetchEntries(ids, batchSize) {
+    const out = {}; batchSize = batchSize || 150;
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize);
+      const d = await fetchJson(GRAPHQL_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: GQL, variables: { ids: batch } }),
+      });
+      for (const e of ((d.data && d.data.entries) || [])) {
+        if (e) out[e.rcsb_id.toUpperCase()] = normalize(e);
+      }
+    }
+    return out;
+  }
+
+  function pdbParents(entry) {
+    return (entry.starting_models || [])
+      .filter(sm => sm.source_name === 'PDB' && sm.accession_code)
+      .map(sm => sm.accession_code.toUpperCase());
+  }
+
+  async function walk(seeds, maxDepth, onProgress) {
+    const collected = {};
+    let frontier = [...new Set(seeds.map(s => s.toUpperCase()))];
+    let depth = 0;
+    while (frontier.length) {
+      if (onProgress) onProgress(Object.keys(collected).length, frontier.length);
+      const got = await fetchEntries(frontier);
+      Object.assign(collected, got);
+      if (depth >= maxDepth) break;
+      const nxt = [];
+      for (const eid of frontier)
+        for (const p of pdbParents(got[eid] || {}))
+          if (!(p in collected) && !nxt.includes(p)) nxt.push(p);
+      frontier = nxt; depth++;
+    }
+    return collected;
+  }
+
+  function computeGenerations(parentsOf) {
+    const nodes = new Set(Object.keys(parentsOf));
+    for (const ps of Object.values(parentsOf)) ps.forEach(p => nodes.add(p));
+    const parents = {}; nodes.forEach(n => parents[n] = (parentsOf[n] || []).slice());
+    const gen = {}, color = {}; nodes.forEach(n => color[n] = 0);
+    function visit(n) {
+      color[n] = 1; let best = 0;
+      for (const p of parents[n]) {
+        if (color[p] === 1) continue;
+        if (color[p] === 0) visit(p);
+        best = Math.max(best, gen[p] + 1);
+      }
+      gen[n] = best; color[n] = 2;
+    }
+    nodes.forEach(n => { if (color[n] === 0) visit(n); });
+    return gen;
+  }
+
+  function classifyOrigin(hasParent, phasing) {
+    if (hasParent) return 'derived';
+    const m = (phasing || '').toUpperCase();
+    if (!m) return 'unknown';
+    if (m.includes('MOLECULAR REPLACEMENT') || /\bMR\b/.test(m)) return 'mr_unrecorded';
+    if (EXP_TOKENS.some(t => m.includes(t))) return 'experimental';
+    return 'unknown';
+  }
+
+  function assemble(entries, seedIds, query) {
+    const seeds = new Set(seedIds.map(s => s.toUpperCase()));
+    const parentsOf = {}, edges = [], referenced = new Set();
+    for (const [eid, e] of Object.entries(entries)) {
+      const pp = [];
+      for (const sm of (e.starting_models || [])) {
+        if (sm.source_name === 'PDB' && sm.accession_code) {
+          const pid = sm.accession_code.toUpperCase();
+          pp.push(pid); referenced.add(pid);
+          edges.push({ source: eid, target: pid, type: sm.type || '' });
+        }
+      }
+      parentsOf[eid] = pp;
+    }
+    const allIds = new Set([...Object.keys(entries), ...referenced]);
+    referenced.forEach(pid => { if (!(pid in parentsOf)) parentsOf[pid] = []; });
+    const gen = computeGenerations(parentsOf);
+    const cc = {}; allIds.forEach(i => cc[i] = 0); edges.forEach(e => cc[e.target]++);
+    const nodes = [...allIds].sort().map(i => {
+      const e = entries[i]; const g = gen[i] || 0;
+      const smType = (e && e.starting_models && e.starting_models[0])
+        ? (e.starting_models[0].type || null) : null;
+      return {
+        id: i, title: e ? e.title : null, method: e ? e.method : null,
+        resolution: e ? e.resolution : null, year: e ? e.year : null,
+        organism: e ? e.organism : null, generation: g, is_root: g === 0,
+        in_query: seeds.has(i), child_count: cc[i] || 0, sm_type: smType,
+        phasing_method: e ? e.phasing_method : null,
+        origin: classifyOrigin((parentsOf[i] || []).length > 0, e ? e.phasing_method : null),
+        missing: !e,
+      };
+    });
+    const maxGen = Object.values(gen).reduce((a, b) => Math.max(a, b), 0);
+    return { meta: { query, source: 'RCSB PDB Data API (live)', node_count: nodes.length,
+      edge_count: edges.length, max_generation: maxGen }, nodes, edges };
+  }
+
+  async function fetchProteinGraph(uniprot, onProgress) {
+    const seeds = await searchEntryIds(uniprot);
+    if (!seeds.length) throw new Error('No experimental entries for "' + uniprot + '"');
+    const entries = await walk(seeds, 8, onProgress);
+    return assemble(entries, seeds, uniprot);
+  }
+
+  return { fetchProteinGraph };
+})();
+
+let fetchInFlight = false;
+async function fetchByUniprot(id) {
+  id = (id || '').trim().toUpperCase();
+  if (!id || fetchInFlight) return;
+  fetchInFlight = true;
+  showLoading('Fetching ' + id + '…');
+  try {
+    const g = await RCSB.fetchProteinGraph(id, (have) =>
+      showLoading('Fetching ' + id + '… (' + have + ' structures)'));
+    loadGraph(g);   // sets its own "Building layout…" state
+    banner('Loaded ' + g.nodes.length + ' structures for ' + id);
+  } catch (e) {
+    hideLoading();
+    banner(String(e.message || e));
+  } finally { fetchInFlight = false; }
+}
+
+// ---- init force-graph ----------------------------------------------------
+function initGraph() {
+  const el = document.getElementById('cy');
+  refreshTheme();
+  fg = ForceGraph()(el)
+    .backgroundColor(COL.surface)
+    .nodeRelSize(4)
+    .nodeId('id')
+    .cooldownTicks(180)
+    .dagLevelDistance(64)
+    .linkDirectionalArrowLength(3.2)
+    .linkDirectionalArrowRelPos(1)
+    .linkWidth(l => (highlightActive && highlightLinks.has(l)) ? 2.2 : 0.8)
+    .linkColor(l => !highlightActive ? COL.edge
+      : (highlightLinks.has(l) ? COL.hl : COL.edgeFaded))
+    .linkDirectionalArrowColor(l => !highlightActive ? COL.edge
+      : (highlightLinks.has(l) ? COL.hl : COL.edgeFaded))
+    .nodeCanvasObject((n, ctx, scale) => {
+      const r = nodeRadius(n);
+      const on = !highlightActive || highlightNodes.has(n.id);
+      ctx.globalAlpha = on ? 1 : 0.12;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = n.missing ? COL.miss : genColor(n.gen);
+      ctx.fill();
+      if (n.missing) { ctx.setLineDash([2, 2]); ctx.lineWidth = 0.8; ctx.strokeStyle = COL.muted; }
+      else if (n.origin === 'experimental') { ctx.lineWidth = 2; ctx.strokeStyle = COL.ink; }
+      else if (n.origin === 'mr_unrecorded') { ctx.lineWidth = 1.8; ctx.strokeStyle = COL.mr; }
+      else { ctx.lineWidth = 0.6; ctx.strokeStyle = COL.border; }
+      ctx.stroke(); ctx.setLineDash([]);
+      if (n.id === foundId) {
+        ctx.lineWidth = 2.2; ctx.strokeStyle = COL.hl;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5, 0, 2 * Math.PI); ctx.stroke();
+      }
+      // Always label hub structures (stable set); add detail as you zoom in.
+      if (n.childCount >= 2 || r * scale > 5) {
+        const fs = Math.max(3.5, 9 / scale);
+        const ly = n.y + r + 1.5;
+        ctx.font = `${fs}px system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        // halo in the surface colour so the label reads on any background/theme
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = fs * 0.42;
+        ctx.strokeStyle = COL.surface;
+        ctx.strokeText(n.id, n.x, ly);
+        ctx.fillStyle = COL.ink;
+        ctx.fillText(n.id, n.x, ly);
+      }
+      ctx.globalAlpha = 1;
+    })
+    .nodePointerAreaPaint((n, color, ctx) => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(n.x, n.y, nodeRadius(n) + 2, 0, 2 * Math.PI); ctx.fill();
+    })
+    .onNodeClick(n => { highlightLineage(n.id); showInfo(n); renderBurst(); })
+    .onBackgroundClick(() => { clearHighlight(); hideInfo(); renderBurst(); })
+    .onNodeDrag(() => fg.resumeAnimation())              // keep sim live while dragging
+    .onNodeDragEnd(n => { n.fx = undefined; n.fy = undefined; fg.resumeAnimation(); })  // spring back, keep view
+    .onEngineStop(() => {
+      if (pendingFit) { pendingFit = false; fg.zoomToFit(500, 45); }
+      hideLoading();
+    });
+  // Layout heuristic: a collision force guarantees no overlap; medium-range
+  // charge (capped so separate components don't fling to the edges) does the
+  // spacing; a light gravity keeps everything gathered near the centre.
+  fg.d3Force('charge').strength(-48).distanceMax(330);
+  fg.d3Force('link').distance(30).strength(0.85);
+  fg.d3Force('gravity', centerGravity(0.03));
+  fg.d3Force('collide', collide(nodeRadius, 2.5, 1.0, 2));
+  if (fg.d3VelocityDecay) fg.d3VelocityDecay(0.4);
+}
+
+// ---- wiring --------------------------------------------------------------
+function wire() {
+  document.getElementById('layoutSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (b) runLayout(b.dataset.layout);
+  });
+  document.getElementById('fitBtn').addEventListener('click', () => fg.zoomToFit(400, 45));
+  document.getElementById('reheatBtn').addEventListener('click', reheatOnly);
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  document.getElementById('hideIsolated').addEventListener('change', applyFilters);
+  document.getElementById('genMax').addEventListener('input', e =>
+    document.getElementById('genMaxVal').textContent = e.target.value);
+  document.getElementById('genMax').addEventListener('change', applyFilters);
+  document.getElementById('search').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const id = e.target.value.trim().toUpperCase();
+    const n = nodeById.get(id);
+    const shown = n && fg.graphData().nodes.some(x => x.id === id);
+    if (shown) {
+      foundId = id; highlightLineage(id); showInfo(n); renderBurst();
+      if (n.x != null) { fg.centerAt(n.x, n.y, 500); fg.zoom(2.2, 500); }
+    } else if (n) { banner('"' + id + '" is hidden by the current filters.'); }
+    else { banner('No structure "' + id + '" in this graph.'); }
+  });
+  document.getElementById('fetchBtn').addEventListener('click', () =>
+    fetchByUniprot(document.getElementById('uniprot').value));
+  document.getElementById('uniprot').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchByUniprot(e.target.value);
+  });
+  document.getElementById('infoClose').addEventListener('click', hideInfo);
+  document.getElementById('upload').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try { parsed = JSON.parse(reader.result); }
+      catch (err) { banner('Not valid JSON.'); return; }
+      if (!validateGraph(parsed)) { banner('JSON missing nodes/edges arrays.'); return; }
+      loadGraph(parsed);
+      banner('Loaded ' + parsed.nodes.length + ' structures.');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (!document.documentElement.getAttribute('data-theme')) refreshTheme();
+  });
+  // responsive drawer
+  const menuBtn = document.getElementById('menuBtn');
+  const scrim = document.getElementById('scrim');
+  menuBtn.addEventListener('click', () => document.body.classList.toggle('drawer-open'));
+  scrim.addEventListener('click', () => document.body.classList.remove('drawer-open'));
+
+  // responsive canvas sizing
+  const stage = document.getElementById('cy');
+  const ro = new ResizeObserver(() => {
+    fg.width(stage.clientWidth).height(stage.clientHeight);
+  });
+  ro.observe(stage);
+}
+
+// ---- boot ----------------------------------------------------------------
+initGraph();
+wire();
+document.getElementById('genMax').setAttribute('max', '7');
+loadGraph(decodeData(DATA_B64));
+fg.width(document.getElementById('cy').clientWidth)
+  .height(document.getElementById('cy').clientHeight);
+</script>
+</body>
+</html>
