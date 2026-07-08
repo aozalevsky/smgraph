@@ -276,6 +276,55 @@ function centerGravity(strength) {
   return force;
 }
 
+// A custom collision force (force-graph doesn't bundle d3's forceCollide).
+// Treats each node as a circle of radiusOf(node)+padding and nudges overlapping
+// pairs apart via their velocities (mass-weighted by radius, like d3-force). A
+// uniform-grid broad phase keeps it ~O(n) so it scales to thousands of nodes.
+function collide(radiusOf, padding, strength, iterations) {
+  let nodes = [];
+  let radii = [];
+  function force() {
+    const n = nodes.length;
+    if (!n) return;
+    let maxR = 1;
+    for (let i = 0; i < n; i++) { radii[i] = radiusOf(nodes[i]) + padding; if (radii[i] > maxR) maxR = radii[i]; }
+    const cell = maxR * 2;
+    for (let it = 0; it < iterations; it++) {
+      const grid = new Map();
+      for (let i = 0; i < n; i++) {
+        const k = Math.floor(nodes[i].x / cell) + ':' + Math.floor(nodes[i].y / cell);
+        let b = grid.get(k); if (!b) { b = []; grid.set(k, b); }
+        b.push(i);
+      }
+      for (let i = 0; i < n; i++) {
+        const a = nodes[i];
+        const gx = Math.floor(a.x / cell), gy = Math.floor(a.y / cell);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+          const b = grid.get((gx + dx) + ':' + (gy + dy));
+          if (!b) continue;
+          for (let m = 0; m < b.length; m++) {
+            const j = b[m]; if (j <= i) continue;
+            const c = nodes[j];
+            const rr = radii[i] + radii[j];
+            let X = (a.x + a.vx) - (c.x + c.vx);
+            let Y = (a.y + a.vy) - (c.y + c.vy);
+            let d2 = X * X + Y * Y;
+            if (d2 >= rr * rr) continue;
+            if (d2 === 0) { a.vx += (Math.random() - 0.5); a.vy += (Math.random() - 0.5); continue; }
+            const d = Math.sqrt(d2);
+            const l = (rr - d) / d * strength;
+            const ratio = radii[j] * radii[j] / (radii[i] * radii[i] + radii[j] * radii[j]);
+            a.vx += X * l * ratio; a.vy += Y * l * ratio;
+            c.vx -= X * l * (1 - ratio); c.vy -= Y * l * (1 - ratio);
+          }
+        }
+      }
+    }
+  }
+  force.initialize = nds => { nodes = nds; radii = new Array(nds.length); };
+  return force;
+}
+
 function refreshTheme() {
   const dark = isDark();
   COL.ink = cssVar('--ink');
@@ -463,7 +512,7 @@ function initGraph() {
     .backgroundColor(COL.surface)
     .nodeRelSize(4)
     .nodeId('id')
-    .cooldownTicks(120)
+    .cooldownTicks(180)
     .dagLevelDistance(64)
     .linkDirectionalArrowLength(3.2)
     .linkDirectionalArrowRelPos(1)
@@ -505,12 +554,14 @@ function initGraph() {
     .onNodeDrag(() => fg.resumeAnimation())              // keep sim live while dragging
     .onNodeDragEnd(n => { n.fx = undefined; n.fy = undefined; relayout(); })  // spring back
     .onEngineStop(() => { if (pendingFit) { pendingFit = false; fg.zoomToFit(500, 45); } });
-  // Compact the layout: cap long-range repulsion so separate components don't
-  // fling to the edges, shorten links, and add a gentle pull toward centre.
-  fg.d3Force('charge').strength(-24).distanceMax(200);
-  fg.d3Force('link').distance(22).strength(1);
-  fg.d3Force('gravity', centerGravity(0.06));
-  if (fg.d3VelocityDecay) fg.d3VelocityDecay(0.3);
+  // Layout heuristic: a collision force guarantees no overlap; medium-range
+  // charge (capped so separate components don't fling to the edges) does the
+  // spacing; a light gravity keeps everything gathered near the centre.
+  fg.d3Force('charge').strength(-48).distanceMax(330);
+  fg.d3Force('link').distance(30).strength(0.85);
+  fg.d3Force('gravity', centerGravity(0.03));
+  fg.d3Force('collide', collide(nodeRadius, 2.5, 1.0, 2));
+  if (fg.d3VelocityDecay) fg.d3VelocityDecay(0.4);
 }
 
 // ---- wiring --------------------------------------------------------------
