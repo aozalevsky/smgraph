@@ -1,0 +1,44 @@
+name: Rebuild site
+
+# Regenerate index.html / smgraph.html whenever the template, data, vendored
+# libs, or the builder change — so you never have to run build.py by hand.
+# Pages serves the committed index.html from the main branch.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - smgraph.template.html
+      - build.py
+      - data/**
+      - vendor/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Rebuild index.html and smgraph.html
+        run: python build.py
+      - name: Commit if the built files changed
+        run: |
+          if git diff --quiet -- index.html smgraph.html; then
+            echo "Built files already up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html smgraph.html
+            git commit -m "chore: rebuild site [skip ci]"
+            git push
+          fi
