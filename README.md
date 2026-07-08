@@ -74,8 +74,21 @@ To regenerate everything from scratch:
 
 ```bash
 python collect.py --uniprot P00734 --out data/thrombin.json   # fetch data
-python build.py                                               # -> smgraph.html
+python build.py                                               # -> smgraph.html + index.html
 ```
+
+## Deployment (GitHub Pages)
+
+The app is a single static file, so hosting is just serving `index.html`
+(`build.py` writes it alongside `smgraph.html`). To publish:
+
+```bash
+git push -u origin main
+```
+
+Then in the repo: **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**.
+The app appears at `https://<user>.github.io/<repo>/`. The live *Fetch from RCSB*
+feature works there — it's served over HTTPS and RCSB's APIs are CORS-open.
 
 ## Using the visualization
 

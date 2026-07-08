@@ -32,9 +32,13 @@ def main(argv=None):
         "__FORCEGRAPH__": open("vendor/force-graph.min.js").read(),
     }
     html = build_html(open(a.template).read(), open(a.data).read(), libs)
-    with open(a.out, "w") as f:
-        f.write(html)
-    print(f"Wrote {a.out}: {len(html)} bytes")
+    outputs = [a.out]
+    if a.out != "index.html":
+        outputs.append("index.html")   # so the app is served at the GitHub Pages root
+    for path in outputs:
+        with open(path, "w") as f:
+            f.write(html)
+    print(f"Wrote {', '.join(outputs)}: {len(html)} bytes")
 
 
 if __name__ == "__main__":
