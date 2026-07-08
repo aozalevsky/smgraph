@@ -1,4 +1,9 @@
-from collect import walk_and_collect
+import json
+import os
+
+import pytest
+
+from collect import main, walk_and_collect
 
 
 def test_walk_follows_ancestry():
@@ -31,3 +36,16 @@ def test_walk_respects_max_depth():
 
     got = walk_and_collect(["C"], fake_fetch, max_depth=0)
     assert set(got) == {"C"}                     # no ancestry rounds
+
+
+@pytest.mark.skipif(os.environ.get("SMTREE_LIVE") != "1",
+                    reason="set SMTREE_LIVE=1 to hit the RCSB API")
+def test_live_small(tmp_path):
+    out = tmp_path / "small.json"
+    main(["--uniprot", "P00734", "--limit", "40", "--out", str(out)])
+    g = json.loads(out.read_text())
+    assert g["meta"]["node_count"] > 0
+    assert g["meta"]["max_generation"] >= 1     # at least one real chain
+    ids = {n["id"] for n in g["nodes"]}
+    for e in g["edges"]:
+        assert e["source"] in ids and e["target"] in ids  # no dangling edges
