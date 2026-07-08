@@ -38,3 +38,69 @@ def compute_generations(parents_of):
         if color[n] == WHITE:
             visit(n)
     return gen
+
+
+def assemble_graph(entries, seed_ids, generated_utc):
+    """Build the {meta, nodes, edges} JSON object from normalized entries.
+
+    entries: {id: normalized_entry}. seed_ids: the original search set.
+    generated_utc: injected timestamp (keeps this function deterministic).
+    Referenced-but-absent starting models become placeholder nodes with
+    ``missing: true`` so no edge is ever dangling.
+    """
+    seed_ids = set(seed_ids)
+
+    parents_of = {}
+    edges = []
+    referenced = set()
+    for eid, e in entries.items():
+        pdb_parents = []
+        for sm in e.get("starting_models") or []:
+            if sm.get("source_name") == "PDB" and sm.get("accession_code"):
+                pid = sm["accession_code"].upper()
+                pdb_parents.append(pid)
+                referenced.add(pid)
+                edges.append({"source": eid, "target": pid,
+                              "type": sm.get("type") or ""})
+        parents_of[eid] = pdb_parents
+
+    all_ids = set(entries) | referenced
+    for pid in referenced - set(entries):
+        parents_of.setdefault(pid, [])
+
+    gen = compute_generations(parents_of)
+
+    child_count = {i: 0 for i in all_ids}
+    for edge in edges:
+        child_count[edge["target"]] += 1
+
+    nodes = []
+    for i in sorted(all_ids):
+        e = entries.get(i)
+        sm_type = None
+        if e and e.get("starting_models"):
+            sm_type = (e["starting_models"][0] or {}).get("type")
+        nodes.append({
+            "id": i,
+            "title": (e or {}).get("title"),
+            "method": (e or {}).get("method"),
+            "resolution": (e or {}).get("resolution"),
+            "year": (e or {}).get("year"),
+            "organism": (e or {}).get("organism"),
+            "generation": gen.get(i, 0),
+            "is_root": gen.get(i, 0) == 0,
+            "in_query": i in seed_ids,
+            "child_count": child_count.get(i, 0),
+            "sm_type": sm_type,
+            "missing": e is None,
+        })
+
+    meta = {
+        "query": None,  # filled by collect.py
+        "generated_utc": generated_utc,
+        "source": "RCSB PDB Data API",
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "max_generation": max(gen.values()) if gen else 0,
+    }
+    return {"meta": meta, "nodes": nodes, "edges": edges}
