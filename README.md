@@ -64,7 +64,7 @@ python build.py                                               # -> smtree.html
 - **Click a node** — highlights its lineage back to the root(s) and opens an info
   panel with method, resolution, release year, organism, and a link to RCSB.
 - **Search** — type a PDB ID (e.g. `1PPB`) and press Enter to locate it.
-- **Filters** — *Hide unconnected structures* (on by default) and *Generations ≤ N*.
+- **Filters** — *Hide unconnected structures* (off by default) and *Generations ≤ N*.
 - **Fit / Shake** — recenter the view, or reheat the simulation to re-settle it.
 - **Upload JSON** — load a graph for any other protein (see below).
 - **Theme** — light/dark toggle; also follows your OS setting.
