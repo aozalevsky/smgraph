@@ -17,6 +17,7 @@ _UNIPROT_ATTR = ("rcsb_polymer_entity_container_identifiers"
 
 _GQL = """query($ids:[String!]!){ entries(entry_ids:$ids){
   rcsb_id struct{title} exptl{method}
+  refine{ pdbx_method_to_determine_struct }
   rcsb_accession_info{initial_release_date}
   rcsb_entry_info{resolution_combined}
   polymer_entities{ rcsb_entity_source_organism{ ncbi_scientific_name } }
@@ -68,9 +69,11 @@ def normalize_entry(raw):
         if so:
             org = so.get("ncbi_scientific_name")
     exptl = first(raw.get("exptl") or [])
+    refine = first(raw.get("refine") or [])
     return {
         "title": (raw.get("struct") or {}).get("title"),
         "method": exptl.get("method") if exptl else None,
+        "phasing_method": refine.get("pdbx_method_to_determine_struct") if refine else None,
         "resolution": res,
         "year": year,
         "organism": org,

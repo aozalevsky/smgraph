@@ -3,12 +3,26 @@
 Collect molecular-replacement **starting-model provenance** from the RCSB PDB and
 render it as an interactive web graph — a "family tree" of structures.
 
-When a structure is solved by molecular replacement, it is built starting from a
-previously-solved structure (its *starting model*). The PDB records this in the
-mmCIF category `pdbx_initial_refinement_model`. Chaining these relationships gives
-a directed acyclic graph back to the structures that were phased experimentally
-(the **roots**, generation 0). `smtree` collects that graph and lets you explore
-it in the browser.
+When a structure is solved by molecular replacement (MR), it is built starting
+from a previously-solved structure (its *starting model*). The PDB records this in
+the mmCIF category `pdbx_initial_refinement_model`. Chaining these relationships
+gives a directed acyclic graph back to structures with no recorded starting model
+(generation 0). `smtree` collects that graph and lets you explore it in the
+browser.
+
+**A missing starting-model record does not mean a structure was originally
+phased.** Many MR structures cite their starting model only in free text, which
+is not machine-readable. So for every node with no recorded starting model,
+`smtree` reads the experimental phasing method (`_refine.pdbx_method_to_determine_struct`)
+and labels it as one of:
+
+- **experimentally phased** — a genuine root (SAD, MAD, MIR, …);
+- **MR, starting model not recorded** — it *has* a parent, just not in the metadata;
+- **provenance not recorded** — no phasing method given, so we can't tell.
+
+In the thrombin demo, of 216 nodes with no recorded parent, only **3** are
+confirmed experimental roots; 70 were solved by MR with the parent unrecorded, and
+143 are unknown.
 
 ![Force view of the human thrombin starting-model graph](docs/img/screenshot-force.png)
 

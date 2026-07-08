@@ -8,24 +8,24 @@
   :root {
     --page:#f9f9f7; --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b;
     --ink-2:#52514e; --muted:#898781; --hair:#e1e0d9; --accent:#2a78d6;
-    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10);
+    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10); --mr:#b8860b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --page:#0d0d0d; --surface:#1a1a19; --panel:#202020; --ink:#ffffff;
       --ink-2:#c3c2b7; --muted:#898781; --hair:#2c2c2a; --accent:#3987e5;
-      --highlight:#d95926; --shadow:rgba(0,0,0,0.5);
+      --highlight:#d95926; --shadow:rgba(0,0,0,0.5); --mr:#e0a92e;
     }
   }
   :root[data-theme="light"] {
     --page:#f9f9f7; --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b;
     --ink-2:#52514e; --muted:#898781; --hair:#e1e0d9; --accent:#2a78d6;
-    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10);
+    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10); --mr:#b8860b;
   }
   :root[data-theme="dark"] {
     --page:#0d0d0d; --surface:#1a1a19; --panel:#202020; --ink:#ffffff;
     --ink-2:#c3c2b7; --muted:#898781; --hair:#2c2c2a; --accent:#3987e5;
-    --highlight:#d95926; --shadow:rgba(0,0,0,0.5);
+    --highlight:#d95926; --shadow:rgba(0,0,0,0.5); --mr:#e0a92e;
   }
 
   * { box-sizing: border-box; }
@@ -89,6 +89,8 @@
   .swatch { width: 14px; height: 14px; border-radius: 50%; flex: none;
             border: 1px solid var(--shadow); }
   .swatch.ring { background: transparent; border: 2px solid var(--ink); }
+  .swatch.mr   { background: transparent; border: 2px solid var(--mr); }
+  .swatch.plain{ background: var(--muted); opacity: .6; }
   .swatch.dash { background: transparent; border: 1.5px dashed var(--muted); }
 
   .stage { position: relative; flex: 1; min-width: 0; background: var(--surface); }
@@ -116,6 +118,9 @@
   .pill { display: inline-block; font-size: 10.5px; padding: 1px 7px; border-radius: 20px;
           background: var(--accent); color: #fff; vertical-align: middle; margin-left: 6px; }
   .pill.miss { background: var(--muted); }
+  .pill.mr { background: var(--mr); color: #1a1a19; }
+  #info .provenance { margin-top: 10px; font-size: 12px; color: var(--ink-2);
+                      line-height: 1.45; }
 
   #banner {
     position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
@@ -193,13 +198,15 @@
     </div>
 
     <div class="group">
-      <h2>Legend</h2>
+      <h2>Provenance</h2>
       <div class="legend">
-        <div class="item"><span class="swatch ring"></span> Root (originally phased)</div>
+        <div class="item"><span class="swatch ring"></span> Experimentally phased (root)</div>
+        <div class="item"><span class="swatch mr"></span> MR — starting model not recorded</div>
+        <div class="item"><span class="swatch plain"></span> Provenance not recorded</div>
         <div class="item"><span class="swatch dash"></span> Referenced, not fetched</div>
         <div class="item"><span class="swatch" style="background:var(--highlight);border:none"></span> Highlighted lineage</div>
       </div>
-      <div class="hint">Node size ∝ number of structures derived from it. Arrows point from a starting model to the structure built on it.</div>
+      <div class="hint">A missing starting-model record does <b>not</b> mean a structure was originally phased — many MR structures cite their starting model only in free text. Only structures with an experimental phasing method are marked as roots. Node size ∝ structures derived from it; arrows point from a starting model to the structure built on it.</div>
     </div>
   </aside>
 
@@ -330,9 +337,17 @@ function refreshTheme() {
   COL.edgeFaded = 'rgba(130,130,124,0.12)';
   COL.border = dark ? 'rgba(255,255,255,0.35)' : 'rgba(11,11,11,0.30)';
   COL.miss = dark ? '#3a3a37' : '#d8d7d0';
+  COL.mr = dark ? '#e0a92e' : '#b8860b';   // gold: MR, starting model not recorded
   if (fg) { fg.backgroundColor(COL.surface); fg.resumeAnimation(); }
   buildLegend();
 }
+
+const ORIGIN_LABEL = {
+  experimental: 'Experimentally phased (root)',
+  mr_unrecorded: 'Molecular replacement — starting model not recorded',
+  unknown: 'Provenance not recorded',
+  derived: 'Built from a recorded starting model',
+};
 
 // ---- lineage highlight ---------------------------------------------------
 function highlightLineage(id) {
@@ -364,8 +379,10 @@ function fmt(v, suffix) {
 }
 function showInfo(n) {
   const m = n.meta;
-  const pill = n.missing ? '<span class="pill miss">not fetched</span>'
-    : (n.root ? '<span class="pill">root</span>' : '');
+  let pill = '';
+  if (n.missing) pill = '<span class="pill miss">not fetched</span>';
+  else if (n.origin === 'experimental') pill = '<span class="pill">phased</span>';
+  else if (n.origin === 'mr_unrecorded') pill = '<span class="pill mr">MR</span>';
   document.getElementById('infoBody').innerHTML = `
     <h3>${m.id}${pill}</h3>
     <div class="title">${fmt(m.title)}</div>
@@ -373,11 +390,15 @@ function showInfo(n) {
       <dt>Generation</dt><dd>${n.gen}</dd>
       <dt>Derived structures</dt><dd>${n.childCount}</dd>
       <dt>Method</dt><dd>${fmt(m.method)}</dd>
+      <dt>Phasing</dt><dd>${fmt(m.phasing_method)}</dd>
       <dt>Resolution</dt><dd>${m.resolution != null ? m.resolution.toFixed(2) + ' Å' : '–'}</dd>
       <dt>Released</dt><dd>${fmt(m.year)}</dd>
       <dt>Organism</dt><dd>${fmt(m.organism)}</dd>
       <dt>In query set</dt><dd>${m.in_query ? 'yes' : 'no'}</dd>
     </dl>
+    <div class="provenance">${ORIGIN_LABEL[n.origin] || n.origin}${
+      n.origin === 'mr_unrecorded' || n.origin === 'unknown'
+        ? ' — a starting model may exist but is not in the PDB metadata.' : ''}</div>
     <a class="rcsb" href="https://www.rcsb.org/structure/${m.id}" target="_blank" rel="noopener">
       View ${m.id} on RCSB PDB →</a>`;
   document.getElementById('info').classList.add('show');
@@ -452,7 +473,7 @@ function validateGraph(g) {
 function buildModel(graph) {
   nodeObjs = graph.nodes.map(n => ({
     id: n.id, gen: n.generation || 0, root: !!n.is_root, missing: !!n.missing,
-    childCount: n.child_count || 0, meta: n,
+    origin: n.origin || 'unknown', childCount: n.child_count || 0, meta: n,
   }));
   nodeById = new Map(nodeObjs.map(n => [n.id, n]));
   // Force-graph link direction: parent (starting model) -> child (derived),
@@ -524,7 +545,8 @@ function initGraph() {
       ctx.fillStyle = n.missing ? COL.miss : genColor(n.gen);
       ctx.fill();
       if (n.missing) { ctx.setLineDash([2, 2]); ctx.lineWidth = 0.8; ctx.strokeStyle = COL.muted; }
-      else if (n.root) { ctx.lineWidth = 1.8; ctx.strokeStyle = COL.ink; }
+      else if (n.origin === 'experimental') { ctx.lineWidth = 2; ctx.strokeStyle = COL.ink; }
+      else if (n.origin === 'mr_unrecorded') { ctx.lineWidth = 1.8; ctx.strokeStyle = COL.mr; }
       else { ctx.lineWidth = 0.6; ctx.strokeStyle = COL.border; }
       ctx.stroke(); ctx.setLineDash([]);
       if (n.id === foundId) {

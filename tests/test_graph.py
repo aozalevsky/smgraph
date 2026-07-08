@@ -1,4 +1,19 @@
-from smtree.graph import assemble_graph, compute_generations
+from smtree.graph import assemble_graph, classify_origin, compute_generations
+
+
+def test_classify_origin():
+    assert classify_origin(True, None) == "derived"           # has a recorded parent
+    assert classify_origin(True, "SAD") == "derived"
+    assert classify_origin(False, "MOLECULAR REPLACEMENT") == "mr_unrecorded"
+    assert classify_origin(False, "MR") == "mr_unrecorded"
+    assert classify_origin(False, "MR-SAD") == "mr_unrecorded"  # MR wins over experimental
+    assert classify_origin(False, "SAD") == "experimental"
+    assert classify_origin(False, "MAD") == "experimental"
+    assert classify_origin(False, "MIRAS") == "experimental"   # contains MIR
+    assert classify_origin(False, None) == "unknown"           # absence != phased
+    assert classify_origin(False, "") == "unknown"
+    assert classify_origin(False, "FOURIER SYNTHESIS") == "unknown"
+    assert classify_origin(False, "OTHER") == "unknown"
 
 
 def test_linear_chain():
@@ -26,11 +41,28 @@ def test_cycle_does_not_hang():
     assert all(v >= 0 for v in g.values())
 
 
-def _entry(title="t", sms=()):
+def _entry(title="t", sms=(), phasing=None):
     return {"title": title, "method": "X-RAY DIFFRACTION", "resolution": 2.0,
-            "year": 2010, "organism": "Homo sapiens",
+            "year": 2010, "organism": "Homo sapiens", "phasing_method": phasing,
             "starting_models": [{"accession_code": a, "source_name": "PDB",
                                  "type": "experimental model"} for a in sms]}
+
+
+def test_assemble_sets_origin():
+    entries = {
+        "EXP": _entry(phasing="SAD"),                    # true experimental root
+        "MRU": _entry(phasing="MOLECULAR REPLACEMENT"),  # MR but no recorded parent
+        "UNK": _entry(phasing=None),                     # unknown provenance
+        "CHILD": _entry(sms=["EXP"], phasing="MOLECULAR REPLACEMENT"),
+    }
+    g = assemble_graph(entries, seed_ids=set(entries), generated_utc="2026-07-08T00:00:00Z")
+    o = {n["id"]: n["origin"] for n in g["nodes"]}
+    assert o["EXP"] == "experimental"
+    assert o["MRU"] == "mr_unrecorded"     # NOT treated as a phased root
+    assert o["UNK"] == "unknown"
+    assert o["CHILD"] == "derived"
+    ph = {n["id"]: n["phasing_method"] for n in g["nodes"]}
+    assert ph["MRU"] == "MOLECULAR REPLACEMENT"
 
 
 def test_assemble_nodes_edges_and_generations():
