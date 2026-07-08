@@ -195,11 +195,14 @@
 
     <div class="group">
       <h2>Load data</h2>
+      <input type="search" id="uniprot" placeholder="UniProt ID, e.g. P00734" autocomplete="off">
+      <button class="btn" id="fetchBtn">Fetch from RCSB</button>
       <label class="btn" style="text-align:center">
         Upload JSON…
         <input type="file" id="upload" accept="application/json,.json" hidden>
       </label>
-      <div class="hint">Produced by <code>collect.py</code>. Replaces the current graph.</div>
+      <div class="hint">Fetch any protein's genealogy live by UniProt accession, or
+        upload a JSON from <code>collect.py</code>. Either replaces the current graph.</div>
     </div>
 
     <div class="group">
@@ -222,7 +225,7 @@
 
   <div class="stage">
     <div id="cy"></div>
-    <div id="loading"><span class="spin"></span> Building layout…</div>
+    <div id="loading"><span class="spin"></span> <span id="loadingText">Building layout…</span></div>
     <div id="scrim"></div>
     <div id="banner"></div>
     <div id="info">
@@ -513,12 +516,15 @@ function buildModel(graph) {
   }
   maxGen = nodeObjs.reduce((m, n) => Math.max(m, n.gen), 0);
 }
-function showLoading() { document.getElementById('loading').classList.add('show'); }
+function showLoading(text) {
+  if (text) document.getElementById('loadingText').textContent = text;
+  document.getElementById('loading').classList.add('show');
+}
 function hideLoading() { document.getElementById('loading').classList.remove('show'); }
 
 function loadGraph(graph) {
   window.__graph = graph;
-  showLoading();
+  showLoading('Building layout…');
   setTimeout(hideLoading, 9000);   // fallback so it can never get stuck
   buildModel(graph);
   const slider = document.getElementById('genMax');
@@ -546,7 +552,193 @@ function banner(msg) {
   const b = document.getElementById('banner');
   b.textContent = msg; b.classList.add('show');
   clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => b.classList.remove('show'), 3500);
+  bannerTimer = setTimeout(() => b.classList.remove('show'), 4500);
+}
+
+// ---- live RCSB fetch: build a genealogy graph in the browser ----------
+// Mirrors collect.py / smgraph.graph so a fetched graph matches an uploaded one.
+const RCSB = (() => {
+  const SEARCH_URL = 'https://search.rcsb.org/rcsbsearch/v2/query';
+  const GRAPHQL_URL = 'https://data.rcsb.org/graphql';
+  const UNIPROT_ATTR = 'rcsb_polymer_entity_container_identifiers'
+    + '.reference_sequence_identifiers.database_accession';
+  const GQL = `query($ids:[String!]!){ entries(entry_ids:$ids){
+    rcsb_id struct{title} exptl{method} refine{ pdbx_method_to_determine_struct }
+    rcsb_accession_info{initial_release_date} rcsb_entry_info{resolution_combined}
+    polymer_entities{ rcsb_entity_source_organism{ ncbi_scientific_name } }
+    pdbx_initial_refinement_model{ accession_code source_name type } } }`;
+  const EXP_TOKENS = ['SAD', 'MAD', 'SIR', 'MIR', 'ISOMORPHOUS', 'ANOMALOUS',
+    'AB INITIO', 'AB-INITIO', 'DIRECT METHOD', 'SINGLE WAVELENGTH',
+    'MULTIPLE WAVELENGTH', 'MULTI-WAVELENGTH'];
+
+  async function fetchJson(url, opts, ms) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), ms || 30000);
+    try {
+      const r = await fetch(url, Object.assign({ signal: ctl.signal }, opts || {}));
+      if (!r.ok) throw new Error('RCSB returned HTTP ' + r.status);
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
+
+  async function searchEntryIds(uniprot) {
+    const body = {
+      query: { type: 'terminal', service: 'text', parameters: {
+        attribute: UNIPROT_ATTR, operator: 'exact_match', value: uniprot } },
+      return_type: 'entry',
+      request_options: { return_all_hits: true, results_content_type: ['experimental'] },
+    };
+    const url = SEARCH_URL + '?json=' + encodeURIComponent(JSON.stringify(body));
+    const d = await fetchJson(url);
+    return (d.result_set || []).map(x => x.identifier);
+  }
+
+  function first(a) { return (a && a.length) ? a[0] : null; }
+  function normalize(raw) {
+    const rl = (raw.rcsb_entry_info || {}).resolution_combined;
+    const date = (raw.rcsb_accession_info || {}).initial_release_date;
+    let org = null; const pe = first(raw.polymer_entities || []);
+    if (pe) { const so = first(pe.rcsb_entity_source_organism || []); if (so) org = so.ncbi_scientific_name; }
+    const ex = first(raw.exptl || []); const rf = first(raw.refine || []);
+    return {
+      title: (raw.struct || {}).title || null,
+      method: ex ? ex.method : null,
+      phasing_method: rf ? rf.pdbx_method_to_determine_struct : null,
+      resolution: (rl && rl.length) ? rl[0] : null,
+      year: date ? parseInt(date.slice(0, 4), 10) : null,
+      organism: org,
+      starting_models: raw.pdbx_initial_refinement_model || [],
+    };
+  }
+
+  async function fetchEntries(ids, batchSize) {
+    const out = {}; batchSize = batchSize || 150;
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize);
+      const d = await fetchJson(GRAPHQL_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: GQL, variables: { ids: batch } }),
+      });
+      for (const e of ((d.data && d.data.entries) || [])) {
+        if (e) out[e.rcsb_id.toUpperCase()] = normalize(e);
+      }
+    }
+    return out;
+  }
+
+  function pdbParents(entry) {
+    return (entry.starting_models || [])
+      .filter(sm => sm.source_name === 'PDB' && sm.accession_code)
+      .map(sm => sm.accession_code.toUpperCase());
+  }
+
+  async function walk(seeds, maxDepth, onProgress) {
+    const collected = {};
+    let frontier = [...new Set(seeds.map(s => s.toUpperCase()))];
+    let depth = 0;
+    while (frontier.length) {
+      if (onProgress) onProgress(Object.keys(collected).length, frontier.length);
+      const got = await fetchEntries(frontier);
+      Object.assign(collected, got);
+      if (depth >= maxDepth) break;
+      const nxt = [];
+      for (const eid of frontier)
+        for (const p of pdbParents(got[eid] || {}))
+          if (!(p in collected) && !nxt.includes(p)) nxt.push(p);
+      frontier = nxt; depth++;
+    }
+    return collected;
+  }
+
+  function computeGenerations(parentsOf) {
+    const nodes = new Set(Object.keys(parentsOf));
+    for (const ps of Object.values(parentsOf)) ps.forEach(p => nodes.add(p));
+    const parents = {}; nodes.forEach(n => parents[n] = (parentsOf[n] || []).slice());
+    const gen = {}, color = {}; nodes.forEach(n => color[n] = 0);
+    function visit(n) {
+      color[n] = 1; let best = 0;
+      for (const p of parents[n]) {
+        if (color[p] === 1) continue;
+        if (color[p] === 0) visit(p);
+        best = Math.max(best, gen[p] + 1);
+      }
+      gen[n] = best; color[n] = 2;
+    }
+    nodes.forEach(n => { if (color[n] === 0) visit(n); });
+    return gen;
+  }
+
+  function classifyOrigin(hasParent, phasing) {
+    if (hasParent) return 'derived';
+    const m = (phasing || '').toUpperCase();
+    if (!m) return 'unknown';
+    if (m.includes('MOLECULAR REPLACEMENT') || /\bMR\b/.test(m)) return 'mr_unrecorded';
+    if (EXP_TOKENS.some(t => m.includes(t))) return 'experimental';
+    return 'unknown';
+  }
+
+  function assemble(entries, seedIds, query) {
+    const seeds = new Set(seedIds.map(s => s.toUpperCase()));
+    const parentsOf = {}, edges = [], referenced = new Set();
+    for (const [eid, e] of Object.entries(entries)) {
+      const pp = [];
+      for (const sm of (e.starting_models || [])) {
+        if (sm.source_name === 'PDB' && sm.accession_code) {
+          const pid = sm.accession_code.toUpperCase();
+          pp.push(pid); referenced.add(pid);
+          edges.push({ source: eid, target: pid, type: sm.type || '' });
+        }
+      }
+      parentsOf[eid] = pp;
+    }
+    const allIds = new Set([...Object.keys(entries), ...referenced]);
+    referenced.forEach(pid => { if (!(pid in parentsOf)) parentsOf[pid] = []; });
+    const gen = computeGenerations(parentsOf);
+    const cc = {}; allIds.forEach(i => cc[i] = 0); edges.forEach(e => cc[e.target]++);
+    const nodes = [...allIds].sort().map(i => {
+      const e = entries[i]; const g = gen[i] || 0;
+      const smType = (e && e.starting_models && e.starting_models[0])
+        ? (e.starting_models[0].type || null) : null;
+      return {
+        id: i, title: e ? e.title : null, method: e ? e.method : null,
+        resolution: e ? e.resolution : null, year: e ? e.year : null,
+        organism: e ? e.organism : null, generation: g, is_root: g === 0,
+        in_query: seeds.has(i), child_count: cc[i] || 0, sm_type: smType,
+        phasing_method: e ? e.phasing_method : null,
+        origin: classifyOrigin((parentsOf[i] || []).length > 0, e ? e.phasing_method : null),
+        missing: !e,
+      };
+    });
+    const maxGen = Object.values(gen).reduce((a, b) => Math.max(a, b), 0);
+    return { meta: { query, source: 'RCSB PDB Data API (live)', node_count: nodes.length,
+      edge_count: edges.length, max_generation: maxGen }, nodes, edges };
+  }
+
+  async function fetchProteinGraph(uniprot, onProgress) {
+    const seeds = await searchEntryIds(uniprot);
+    if (!seeds.length) throw new Error('No experimental entries for "' + uniprot + '"');
+    const entries = await walk(seeds, 8, onProgress);
+    return assemble(entries, seeds, uniprot);
+  }
+
+  return { fetchProteinGraph };
+})();
+
+let fetchInFlight = false;
+async function fetchByUniprot(id) {
+  id = (id || '').trim().toUpperCase();
+  if (!id || fetchInFlight) return;
+  fetchInFlight = true;
+  showLoading('Fetching ' + id + '…');
+  try {
+    const g = await RCSB.fetchProteinGraph(id, (have) =>
+      showLoading('Fetching ' + id + '… (' + have + ' structures)'));
+    loadGraph(g);   // sets its own "Building layout…" state
+    banner('Loaded ' + g.nodes.length + ' structures for ' + id);
+  } catch (e) {
+    hideLoading();
+    banner(String(e.message || e));
+  } finally { fetchInFlight = false; }
 }
 
 // ---- init force-graph ----------------------------------------------------
@@ -642,6 +834,11 @@ function wire() {
       if (n.x != null) { fg.centerAt(n.x, n.y, 500); fg.zoom(2.2, 500); }
     } else if (n) { banner('"' + id + '" is hidden by the current filters.'); }
     else { banner('No structure "' + id + '" in this graph.'); }
+  });
+  document.getElementById('fetchBtn').addEventListener('click', () =>
+    fetchByUniprot(document.getElementById('uniprot').value));
+  document.getElementById('uniprot').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchByUniprot(e.target.value);
   });
   document.getElementById('infoClose').addEventListener('click', hideInfo);
   document.getElementById('upload').addEventListener('change', e => {

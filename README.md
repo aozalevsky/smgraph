@@ -79,6 +79,9 @@ python build.py                                               # -> smgraph.html
 
 ## Using the visualization
 
+- **Fetch by UniProt** — type a UniProt accession (e.g. `P00760`) and the page
+  builds that protein's genealogy live from the RCSB API, right in the browser
+  (no `collect.py` run needed). Replaces the current graph.
 - **Drag any node** — the live physics simulation stretches its edges and the
   graph springs back into shape.
 - **Layout toggle** — *Force* (organic clustering that surfaces hubs; the default)
@@ -99,7 +102,13 @@ model to the structure built on it.
 
 ## Visualizing a different protein
 
-`collect.py` works for any RCSB query, not just thrombin:
+The quickest way is **in the browser**: type a UniProt accession into the
+*Fetch from RCSB* box. The page runs the same pipeline client-side (search →
+GraphQL → ancestry walk → classify) and swaps in the new graph. This is scoped to
+one protein at a time by UniProt; tracing an arbitrary leaf structure's full
+lineage across the whole PDB would need a full-graph dump (future work).
+
+For a reusable file, `collect.py` works for any RCSB query, not just thrombin:
 
 ```bash
 python collect.py --uniprot P00760 --out data/trypsin.json   # by UniProt accession
