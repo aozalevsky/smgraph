@@ -1,22 +1,18 @@
 # Vendored libraries
 
-Downloaded 2026-07-08 for fully-offline, self-contained `smtree.html`.
-Pinned versions, minified builds fetched from unpkg:
+Downloaded for a fully-offline, self-contained `smtree.html`.
 
-| File | Version | Source URL |
-|------|---------|------------|
-| `cytoscape.min.js` | 3.30.2 | https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js |
-| `dagre.min.js` | 0.8.5 | https://unpkg.com/dagre@0.8.5/dist/dagre.min.js |
-| `cytoscape-dagre.js` | 2.5.0 | https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js |
+| File | Version | Source URL | Date |
+|------|---------|------------|------|
+| `force-graph.min.js` | 1.49.5 | https://unpkg.com/force-graph@1.49.5/dist/force-graph.min.js | 2026-07-08 |
 
-## Load order (required)
+`force-graph` (by Vasco Asturiano) is a self-contained UMD bundle that exposes
+the global `ForceGraph`. It runs a live d3-force simulation on an HTML canvas:
+dragging a node stretches its links and the graph springs back. Its `dagMode`
+gives a layered (hierarchical) layout that is also a live, draggable simulation.
+The bundle includes d3-force / d3-zoom / d3-drag — no other libraries are needed.
 
-`cytoscape-dagre` is a UMD build; in the browser it reads the `dagre` global and
-exposes `cytoscapeDagre`. They must be loaded in this order, then registered:
+## History
 
-```
-cytoscape.min.js  ->  dagre.min.js  ->  cytoscape-dagre.js  ->  cytoscape.use(cytoscapeDagre)
-```
-
-The hierarchy layout uses the `dagre` layout (from cytoscape-dagre); the force
-layout uses Cytoscape's built-in `cose` (no extra extension needed).
+- 2026-07-08: replaced Cytoscape.js + dagre + cytoscape-dagre with force-graph,
+  to get a live spring simulation (edges deform on drag) and a lighter bundle.

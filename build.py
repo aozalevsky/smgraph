@@ -29,9 +29,7 @@ def main(argv=None):
     ap.add_argument("--out", default="smtree.html")
     a = ap.parse_args(argv)
     libs = {
-        "__CYTOSCAPE__": open("vendor/cytoscape.min.js").read(),
-        "__DAGRE__": open("vendor/dagre.min.js").read(),
-        "__CYDAGRE__": open("vendor/cytoscape-dagre.js").read(),
+        "__FORCEGRAPH__": open("vendor/force-graph.min.js").read(),
     }
     html = build_html(open(a.template).read(), open(a.data).read(), libs)
     with open(a.out, "w") as f:

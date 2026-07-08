@@ -10,11 +10,17 @@ a directed acyclic graph back to the structures that were phased experimentally
 (the **roots**, generation 0). `smtree` collects that graph and lets you explore
 it in the browser.
 
-![Hierarchy view: the seminal thrombin structure 1PPB and its descendants](docs/img/screenshot-hierarchy.png)
+![Force view of the human thrombin starting-model graph](docs/img/screenshot-force.png)
 
 *The demo dataset is human thrombin (UniProt P00734): 497 structures, up to 7
-generations deep. Above, clicking the seminal 1989 structure **1PPB** traces its
-descendants — dozens of later thrombin structures were built starting from it.*
+generations deep. The live force simulation (WebGL-fast canvas via `force-graph`)
+clusters the families and hubs; drag any node and its edges stretch and the graph
+springs back.*
+
+![Clicking a node traces its lineage back to the roots](docs/img/screenshot-lineage.png)
+
+*Clicking the deepest structure (`9CTH`, a 2024 cryo-EM map) highlights its full
+lineage back through seven generations of starting models.*
 
 ## Two parts
 
@@ -26,8 +32,9 @@ collect.py  ──►  data/thrombin.json  ──►  build.py  ──►  smtre
 - **`collect.py`** queries the RCSB Search + Data (GraphQL) APIs, follows every
   structure's starting models upward through ancestry, and writes a graph JSON.
 - **`smtree.html`** is a single self-contained page (graph library + dataset
-  inlined) that opens in any browser offline. It embeds the thrombin dataset and
-  can also load any JSON produced by `collect.py`.
+  inlined) that opens in any browser offline. It renders with `force-graph`
+  (a live d3-force simulation on canvas), is fully responsive, and can load any
+  JSON produced by `collect.py`. It embeds the thrombin dataset by default.
 
 Only the Python standard library is needed to run `collect.py` and `build.py`
 (`pytest` is used for the tests only).
@@ -49,14 +56,19 @@ python build.py                                               # -> smtree.html
 
 ## Using the visualization
 
-- **Layout toggle** — *Hierarchy* (generations stacked top-to-bottom, roots on
-  top) or *Force* (organic clustering that surfaces hubs).
+- **Drag any node** — the live physics simulation stretches its edges and the
+  graph springs back into shape.
+- **Layout toggle** — *Force* (organic clustering that surfaces hubs; the default)
+  or *Hierarchy* (generations stacked top-to-bottom, roots on top). Both are live
+  and draggable.
 - **Click a node** — highlights its lineage back to the root(s) and opens an info
   panel with method, resolution, release year, organism, and a link to RCSB.
 - **Search** — type a PDB ID (e.g. `1PPB`) and press Enter to locate it.
 - **Filters** — *Hide unconnected structures* (on by default) and *Generations ≤ N*.
+- **Fit / Shake** — recenter the view, or reheat the simulation to re-settle it.
 - **Upload JSON** — load a graph for any other protein (see below).
 - **Theme** — light/dark toggle; also follows your OS setting.
+- **Responsive** — on narrow screens the controls collapse into a drawer (☰).
 
 Node **color** encodes generation; node **size** is proportional to how many
 structures were derived from it (hub influence); **arrows** point from a starting

@@ -2,33 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Starting Model Tree</title>
 <style>
   :root {
-    --page:        #f9f9f7;
-    --surface:     #fcfcfb;
-    --panel:       #ffffff;
-    --ink:         #0b0b0b;
-    --ink-2:       #52514e;
-    --muted:       #898781;
-    --hair:        #e1e0d9;
-    --accent:      #2a78d6;
-    --highlight:   #eb6834;
-    --shadow:      rgba(11,11,11,0.10);
+    --page:#f9f9f7; --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b;
+    --ink-2:#52514e; --muted:#898781; --hair:#e1e0d9; --accent:#2a78d6;
+    --highlight:#eb6834; --shadow:rgba(11,11,11,0.10);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --page:      #0d0d0d;
-      --surface:   #1a1a19;
-      --panel:     #202020;
-      --ink:       #ffffff;
-      --ink-2:     #c3c2b7;
-      --muted:     #898781;
-      --hair:      #2c2c2a;
-      --accent:    #3987e5;
-      --highlight: #d95926;
-      --shadow:    rgba(0,0,0,0.5);
+      --page:#0d0d0d; --surface:#1a1a19; --panel:#202020; --ink:#ffffff;
+      --ink-2:#c3c2b7; --muted:#898781; --hair:#2c2c2a; --accent:#3987e5;
+      --highlight:#d95926; --shadow:rgba(0,0,0,0.5);
     }
   }
   :root[data-theme="light"] {
@@ -47,43 +33,45 @@
   body {
     font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
     color: var(--ink); background: var(--page);
-    display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
   }
 
   header {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 10px 16px; background: var(--surface);
-    border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
+    padding: 9px 14px; background: var(--surface);
+    border-bottom: 1px solid var(--hair); flex: none;
   }
-  header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: .2px; }
+  header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: .2px;
+              white-space: nowrap; }
   header h1 .sub { color: var(--muted); font-weight: 400; }
-  .stats { display: flex; gap: 14px; flex-wrap: wrap; color: var(--ink-2);
+  .stats { display: flex; gap: 8px 14px; flex-wrap: wrap; color: var(--ink-2);
            font-variant-numeric: tabular-nums; font-size: 12.5px; }
   .stats b { color: var(--ink); font-weight: 650; }
-  header .spacer { flex: 1; }
+  header .spacer { flex: 1 1 8px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
   .btn {
     font: inherit; font-size: 12.5px; color: var(--ink); cursor: pointer;
     background: var(--panel); border: 1px solid var(--hair); border-radius: 7px;
-    padding: 5px 10px;
+    padding: 5px 10px; white-space: nowrap;
   }
   .btn:hover { border-color: var(--muted); }
   .seg { display: inline-flex; border: 1px solid var(--hair); border-radius: 7px;
          overflow: hidden; }
   .seg button { border: 0; border-radius: 0; }
   .seg button.active { background: var(--accent); color: #fff; }
+  #menuBtn { display: none; }
 
-  main { display: grid; grid-template-columns: 232px 1fr; min-height: 0; }
+  main { display: flex; flex: 1; min-height: 0; position: relative; }
 
   aside {
-    background: var(--surface); border-right: 1px solid var(--hair);
-    padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+    width: 236px; flex: none; background: var(--surface);
+    border-right: 1px solid var(--hair); padding: 14px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px;
   }
   .group { display: flex; flex-direction: column; gap: 8px; }
-  .group h2 {
-    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
-    color: var(--muted); margin: 0 0 2px; font-weight: 650;
-  }
+  .group h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); margin: 0 0 2px; font-weight: 650; }
   label.row { display: flex; align-items: center; gap: 8px; font-size: 13px;
               color: var(--ink-2); cursor: pointer; }
   input[type="search"], input[type="text"] {
@@ -98,18 +86,19 @@
   .legend { display: flex; flex-direction: column; gap: 5px; }
   .legend .item { display: flex; align-items: center; gap: 8px; font-size: 12.5px;
                   color: var(--ink-2); }
-  .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none;
+  .swatch { width: 14px; height: 14px; border-radius: 50%; flex: none;
             border: 1px solid var(--shadow); }
   .swatch.ring { background: transparent; border: 2px solid var(--ink); }
   .swatch.dash { background: transparent; border: 1.5px dashed var(--muted); }
 
-  .stage { position: relative; min-height: 0; background: var(--surface); }
+  .stage { position: relative; flex: 1; min-width: 0; background: var(--surface); }
   #cy { position: absolute; inset: 0; }
+  #cy canvas { display: block; }
 
   #info {
-    position: absolute; top: 12px; right: 12px; width: 260px; max-width: 60%;
+    position: absolute; top: 12px; right: 12px; width: 258px; max-width: 70%;
     background: var(--panel); border: 1px solid var(--hair); border-radius: 10px;
-    box-shadow: 0 6px 24px var(--shadow); padding: 14px; display: none;
+    box-shadow: 0 6px 24px var(--shadow); padding: 14px; display: none; z-index: 4;
   }
   #info.show { display: block; }
   #info .close { position: absolute; top: 8px; right: 10px; cursor: pointer;
@@ -131,30 +120,53 @@
   #banner {
     position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
     background: var(--highlight); color: #fff; padding: 8px 14px; border-radius: 8px;
-    font-size: 13px; display: none; box-shadow: 0 4px 14px var(--shadow); z-index: 5;
+    font-size: 13px; display: none; box-shadow: 0 4px 14px var(--shadow); z-index: 6;
+    max-width: 90%; text-align: center;
   }
   #banner.show { display: block; }
+  #scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 8;
+           display: none; }
+
+  /* ---- responsive: collapse sidebar into a drawer on narrow screens ---- */
+  @media (max-width: 760px) {
+    #menuBtn { display: inline-block; }
+    header h1 .sub { display: none; }
+    aside {
+      position: absolute; z-index: 9; top: 0; bottom: 0; left: 0; width: 82vw;
+      max-width: 300px; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 4px 0 24px var(--shadow);
+    }
+    body.drawer-open aside { transform: translateX(0); }
+    body.drawer-open #scrim { display: block; }
+    #info { width: auto; left: 10px; right: 10px; max-width: none; top: auto;
+            bottom: 10px; }
+  }
 </style>
 </head>
 <body>
 <header>
+  <button class="btn" id="menuBtn" aria-label="Toggle controls">☰</button>
   <h1>Starting Model Tree <span class="sub">· PDB molecular-replacement provenance</span></h1>
   <div class="stats" id="stats"></div>
   <span class="spacer"></span>
-  <div class="seg" id="layoutSeg">
-    <button class="btn active" data-layout="hier">Hierarchy</button>
-    <button class="btn" data-layout="force">Force</button>
+  <div class="toolbar">
+    <div class="seg" id="layoutSeg">
+      <button class="btn active" data-layout="force">Force</button>
+      <button class="btn" data-layout="hier">Hierarchy</button>
+    </div>
+    <button class="btn" id="fitBtn">Fit</button>
+    <button class="btn" id="reheatBtn">Shake</button>
+    <button class="btn" id="themeBtn">◐ Theme</button>
   </div>
-  <button class="btn" id="fitBtn">Fit</button>
-  <button class="btn" id="themeBtn">◐ Theme</button>
 </header>
 
 <main>
-  <aside>
+  <aside id="sidebar">
     <div class="group">
       <h2>Find</h2>
       <input type="search" id="search" placeholder="PDB ID, e.g. 1PPB" autocomplete="off">
-      <div class="hint">Click a node to trace its lineage back to the root(s).</div>
+      <div class="hint">Click a node to trace its lineage back to the root(s).
+        Drag any node — the edges stretch and the graph springs back.</div>
     </div>
 
     <div class="group">
@@ -193,6 +205,7 @@
 
   <div class="stage">
     <div id="cy"></div>
+    <div id="scrim"></div>
     <div id="banner"></div>
     <div id="info">
       <button class="close" id="infoClose">×</button>
@@ -201,12 +214,7 @@
   </div>
 </main>
 
-<script>/*__CYTOSCAPE__*/</script>
-<script>/*__DAGRE__*/</script>
-<script>/*__CYDAGRE__*/</script>
-<script>
-  if (window.cytoscape && window.cytoscapeDagre) cytoscape.use(window.cytoscapeDagre);
-</script>
+<script>/*__FORCEGRAPH__*/</script>
 <script>
 "use strict";
 
@@ -229,145 +237,92 @@ function genColor(g) {
   const ramp = isDark() ? GEN_DARK : GEN_LIGHT;
   return ramp[Math.min(g, ramp.length - 1)];
 }
-
-// ---- css var reader (for cytoscape canvas colors) ------------------------
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-let cy = null;
-let currentLayout = 'hier';
+// ---- module state --------------------------------------------------------
+let fg = null;
+let currentLayout = 'force';
 let maxGen = 0;
+let nodeObjs = [];                 // stable node objects (force-graph mutates x/y)
+let nodeById = new Map();
+let fgLinksRaw = [];               // {s: parentId, t: childId, kind}
+let parentsOf = new Map();         // childId -> [parentId,...] (ancestry)
+let degreeById = new Map();
+let highlightActive = false;
+let highlightNodes = new Set();
+let highlightLinks = new Set();
+let foundId = null;
+let pendingFit = false;
+const COL = {};
 
-function nodeSize(childCount) {
-  return Math.min(72, 16 + Math.sqrt(childCount) * 7);
+function nodeRadius(n) { return 3 + Math.sqrt(n.childCount || 0) * 1.4; }
+
+// A custom d3-force: pull every node gently toward the origin so disconnected
+// components and loose nodes stay compact instead of drifting to the edges.
+function centerGravity(strength) {
+  let nodes = [];
+  function force(alpha) {
+    const k = strength * alpha;
+    for (const n of nodes) { n.vx -= n.x * k; n.vy -= n.y * k; }
+  }
+  force.initialize = n => { nodes = n; };
+  return force;
 }
 
-function toElements(graph) {
-  const nodes = graph.nodes.map(n => ({
-    group: 'nodes',
-    data: {
-      id: n.id, label: n.id, gen: n.generation || 0,
-      root: !!n.is_root, missing: !!n.missing,
-      childCount: n.child_count || 0, meta: n,
-    },
-  }));
-  // Cytoscape edge points ancestor -> descendant (starting model -> derived):
-  // data edge is child(source) -> startingModel(target); reverse for display.
-  const edges = graph.edges.map((e, i) => ({
-    group: 'edges',
-    data: { id: 'e' + i, source: e.target, target: e.source, kind: e.type || '' },
-  }));
-  return [...nodes, ...edges];
-}
-
-function buildStyle() {
-  const ink = cssVar('--ink'), surface = cssVar('--surface'),
-        muted = cssVar('--muted'), highlight = cssVar('--highlight');
-  const edgeLine = isDark() ? '#55554f' : '#b3b2ac';
-  const normalBorder = isDark() ? 'rgba(255,255,255,0.30)' : 'rgba(11,11,11,0.28)';
-  const missFill = isDark() ? '#3a3a37' : '#d8d7d0';
-  return [
-    { selector: 'node', style: {
-      'background-color': ele => ele.data('missing') ? missFill : genColor(ele.data('gen')),
-      'width': ele => nodeSize(ele.data('childCount')),
-      'height': ele => nodeSize(ele.data('childCount')),
-      'label': 'data(label)',
-      'font-size': 8, 'font-weight': 600,
-      'color': ink, 'text-outline-color': surface, 'text-outline-width': 2,
-      'text-valign': 'center', 'text-halign': 'center',
-      'border-width': 1, 'border-color': normalBorder,
-    }},
-    { selector: 'node[?root]', style: {
-      'border-width': 2.5, 'border-color': ink,
-    }},
-    { selector: 'node[?missing]', style: {
-      'border-style': 'dashed', 'border-color': muted, 'border-width': 1.5,
-    }},
-    { selector: 'edge', style: {
-      'width': 1.2, 'line-color': edgeLine,
-      'curve-style': 'bezier', 'target-arrow-shape': 'triangle',
-      'target-arrow-color': edgeLine, 'arrow-scale': 0.7,
-    }},
-    { selector: '.faded', style: { 'opacity': 0.10 } },
-    { selector: 'node.path', style: {
-      'border-width': 3, 'border-color': highlight, 'z-index': 20,
-    }},
-    { selector: 'edge.path', style: {
-      'line-color': highlight, 'target-arrow-color': highlight,
-      'width': 2.4, 'opacity': 1, 'z-index': 20,
-    }},
-    { selector: '.hidden', style: { 'display': 'none' } },
-    { selector: 'node.found', style: {
-      'border-width': 4, 'border-color': highlight,
-    }},
-  ];
-}
-
-const LAYOUTS = {
-  hier: { name: 'dagre', rankDir: 'TB', nodeSep: 16, rankSep: 60,
-          edgeSep: 8, animate: false, fit: true, padding: 30 },
-  force: { name: 'cose', animate: false, fit: true, padding: 30,
-           nodeRepulsion: 9000, idealEdgeLength: 55, numIter: 1200,
-           componentSpacing: 60 },
-};
-
-function runLayout(name) {
-  currentLayout = name;
-  document.querySelectorAll('#layoutSeg button').forEach(b =>
-    b.classList.toggle('active', b.dataset.layout === name));
-  // Lay out only the visible elements so filtered graphs pack tightly.
-  const visible = cy.elements().not('.hidden');
-  visible.layout(LAYOUTS[name]).run();
-}
-
-// ---- filtering -----------------------------------------------------------
-function applyFilters() {
-  const hideIso = document.getElementById('hideIsolated').checked;
-  const gmax = +document.getElementById('genMax').value;
-  cy.batch(() => {
-    cy.nodes().forEach(n => {
-      const overGen = n.data('gen') > gmax;
-      const iso = hideIso && n.degree(false) === 0;
-      n.toggleClass('hidden', overGen || iso);
-    });
-    cy.edges().forEach(e => {
-      const hidden = e.source().hasClass('hidden') || e.target().hasClass('hidden');
-      e.toggleClass('hidden', hidden);
-    });
-  });
-  updateStats();
+function refreshTheme() {
+  const dark = isDark();
+  COL.ink = cssVar('--ink');
+  COL.surface = cssVar('--surface');
+  COL.muted = cssVar('--muted');
+  COL.hl = cssVar('--highlight');
+  COL.edge = dark ? 'rgba(150,150,143,0.55)' : 'rgba(120,119,113,0.55)';
+  COL.edgeFaded = 'rgba(130,130,124,0.12)';
+  COL.border = dark ? 'rgba(255,255,255,0.35)' : 'rgba(11,11,11,0.30)';
+  COL.miss = dark ? '#3a3a37' : '#d8d7d0';
+  if (fg) { fg.backgroundColor(COL.surface); fg.resumeAnimation(); }
+  buildLegend();
 }
 
 // ---- lineage highlight ---------------------------------------------------
-function clearHighlight() {
-  cy.elements().removeClass('faded path found');
+function highlightLineage(id) {
+  const lineage = new Set([id]);
+  const stack = [id];
+  while (stack.length) {
+    const cur = stack.pop();
+    for (const p of (parentsOf.get(cur) || [])) {
+      if (!lineage.has(p)) { lineage.add(p); stack.push(p); }
+    }
+  }
+  highlightNodes = lineage;
+  highlightLinks = new Set();
+  for (const l of fg.graphData().links) {
+    const s = typeof l.source === 'object' ? l.source.id : l.source;
+    const t = typeof l.target === 'object' ? l.target.id : l.target;
+    if (lineage.has(s) && lineage.has(t)) highlightLinks.add(l);
+  }
+  highlightActive = true;
 }
-function highlightLineage(node) {
-  clearHighlight();
-  // Ancestors = follow edges backward (predecessors), since edges point
-  // starting-model -> derived. Include the node itself.
-  const lineage = node.predecessors().union(node);
-  cy.elements().not('.hidden').addClass('faded');
-  lineage.removeClass('faded').addClass('path');
-  node.removeClass('faded');
+function clearHighlight() {
+  highlightActive = false; highlightNodes = new Set();
+  highlightLinks = new Set(); foundId = null;
 }
 
 // ---- info panel ----------------------------------------------------------
-function fmt(v, suffix) { return (v === null || v === undefined || v === '')
-  ? '–' : (v + (suffix || '')); }
-function showInfo(node) {
-  const m = node.data('meta');
-  const gens = node.data('gen');
-  const pill = node.data('missing')
-    ? '<span class="pill miss">not fetched</span>'
-    : (node.data('root') ? '<span class="pill">root</span>' : '');
-  const body = `
+function fmt(v, suffix) {
+  return (v === null || v === undefined || v === '') ? '–' : (v + (suffix || ''));
+}
+function showInfo(n) {
+  const m = n.meta;
+  const pill = n.missing ? '<span class="pill miss">not fetched</span>'
+    : (n.root ? '<span class="pill">root</span>' : '');
+  document.getElementById('infoBody').innerHTML = `
     <h3>${m.id}${pill}</h3>
     <div class="title">${fmt(m.title)}</div>
     <dl>
-      <dt>Generation</dt><dd>${gens}</dd>
-      <dt>Derived structures</dt><dd>${node.data('childCount')}</dd>
+      <dt>Generation</dt><dd>${n.gen}</dd>
+      <dt>Derived structures</dt><dd>${n.childCount}</dd>
       <dt>Method</dt><dd>${fmt(m.method)}</dd>
       <dt>Resolution</dt><dd>${m.resolution != null ? m.resolution.toFixed(2) + ' Å' : '–'}</dd>
       <dt>Released</dt><dd>${fmt(m.year)}</dd>
@@ -376,30 +331,68 @@ function showInfo(node) {
     </dl>
     <a class="rcsb" href="https://www.rcsb.org/structure/${m.id}" target="_blank" rel="noopener">
       View ${m.id} on RCSB PDB →</a>`;
-  document.getElementById('infoBody').innerHTML = body;
   document.getElementById('info').classList.add('show');
 }
 function hideInfo() { document.getElementById('info').classList.remove('show'); }
 
 // ---- stats + legend ------------------------------------------------------
 function updateStats() {
-  const g = cy.$('node').not('.hidden').length;
-  const e = cy.$('edge').not('.hidden').length;
+  const d = fg ? fg.graphData() : { nodes: [], links: [] };
   const q = (window.__graph && window.__graph.meta && window.__graph.meta.query) || '—';
   document.getElementById('stats').innerHTML =
     `<span>Query <b>${q}</b></span>` +
-    `<span><b>${g}</b> structures shown</span>` +
-    `<span><b>${e}</b> links</span>` +
-    `<span>Deepest generation <b>${maxGen}</b></span>`;
+    `<span><b>${d.nodes.length}</b> shown</span>` +
+    `<span><b>${d.links.length}</b> links</span>` +
+    `<span>Deepest gen <b>${maxGen}</b></span>`;
 }
 function buildLegend() {
-  const el = document.getElementById('legend');
   let html = '';
   for (let i = 0; i <= maxGen; i++) {
     html += `<div class="item"><span class="swatch" style="background:${genColor(i)}"></span>
              Generation ${i}${i === 0 ? ' (root)' : ''}</div>`;
   }
-  el.innerHTML = html;
+  document.getElementById('legend').innerHTML = html;
+}
+
+// ---- filtering (rebuilds the visible graph) ------------------------------
+function visibleData() {
+  const genMax = +document.getElementById('genMax').value;
+  const hideIso = document.getElementById('hideIsolated').checked;
+  const vis = new Set();
+  for (const n of nodeObjs) {
+    if (n.gen > genMax) continue;
+    if (hideIso && (degreeById.get(n.id) || 0) === 0) continue;
+    vis.add(n.id);
+  }
+  const nodes = nodeObjs.filter(n => vis.has(n.id));
+  const links = fgLinksRaw
+    .filter(l => vis.has(l.s) && vis.has(l.t))
+    .map(l => ({ source: l.s, target: l.t, kind: l.kind }));
+  return { nodes, links };
+}
+function applyFilters() {
+  clearHighlight();
+  fg.graphData(visibleData());
+  relayout();
+  updateStats();
+}
+
+// Restart the layout AND the render loop. force-graph stops its animation loop
+// once the graph settles; d3ReheatSimulation() alone only resets alpha, so the
+// loop must be resumed or nothing ticks (layout toggle / filter / shake / drag).
+function relayout() {
+  pendingFit = true;
+  fg.d3ReheatSimulation();
+  fg.resumeAnimation();
+}
+
+// ---- layout --------------------------------------------------------------
+function runLayout(name) {
+  currentLayout = name;
+  document.querySelectorAll('#layoutSeg button').forEach(b =>
+    b.classList.toggle('active', b.dataset.layout === name));
+  fg.dagMode(name === 'hier' ? 'td' : null);
+  relayout();
 }
 
 // ---- (re)load a graph ----------------------------------------------------
@@ -407,41 +400,45 @@ function validateGraph(g) {
   return g && typeof g === 'object' && Array.isArray(g.nodes) &&
          Array.isArray(g.edges) && g.nodes.every(n => n && n.id);
 }
+function buildModel(graph) {
+  nodeObjs = graph.nodes.map(n => ({
+    id: n.id, gen: n.generation || 0, root: !!n.is_root, missing: !!n.missing,
+    childCount: n.child_count || 0, meta: n,
+  }));
+  nodeById = new Map(nodeObjs.map(n => [n.id, n]));
+  // Force-graph link direction: parent (starting model) -> child (derived),
+  // so DAG 'td' puts roots on top and arrows point ancestor -> descendant.
+  fgLinksRaw = graph.edges.map(e => ({ s: e.target, t: e.source, kind: e.type }));
+  parentsOf = new Map();
+  degreeById = new Map();
+  for (const e of graph.edges) {                 // e.source = child, e.target = parent
+    if (!parentsOf.has(e.source)) parentsOf.set(e.source, []);
+    parentsOf.get(e.source).push(e.target);
+    degreeById.set(e.source, (degreeById.get(e.source) || 0) + 1);
+    degreeById.set(e.target, (degreeById.get(e.target) || 0) + 1);
+  }
+  maxGen = nodeObjs.reduce((m, n) => Math.max(m, n.gen), 0);
+}
 function loadGraph(graph) {
   window.__graph = graph;
-  maxGen = graph.nodes.reduce((m, n) => Math.max(m, n.generation || 0), 0);
+  buildModel(graph);
   const slider = document.getElementById('genMax');
   slider.max = String(maxGen); slider.value = String(maxGen);
   document.getElementById('genMaxVal').textContent = maxGen;
-
-  if (cy) cy.destroy();
-  cy = cytoscape({
-    container: document.getElementById('cy'),
-    elements: toElements(graph),
-    style: buildStyle(),
-    wheelSensitivity: 0.25,
-    minZoom: 0.05, maxZoom: 4,
-  });
-
-  cy.on('tap', 'node', evt => { highlightLineage(evt.target); showInfo(evt.target); });
-  cy.on('tap', evt => { if (evt.target === cy) { clearHighlight(); hideInfo(); } });
-
+  clearHighlight();
+  fg.graphData(visibleData());
+  fg.dagMode(currentLayout === 'hier' ? 'td' : null);
+  relayout();
   buildLegend();
-  applyFilters();
-  runLayout(currentLayout);
+  updateStats();
 }
 
 // ---- theme ---------------------------------------------------------------
-function applyThemeToCy() {
-  if (!cy) return;
-  cy.style(buildStyle());
-  buildLegend();
-}
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme');
   const next = (cur === 'dark' || (!cur && isDark())) ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
-  applyThemeToCy();
+  refreshTheme();
 }
 
 // ---- banner --------------------------------------------------------------
@@ -453,53 +450,126 @@ function banner(msg) {
   bannerTimer = setTimeout(() => b.classList.remove('show'), 3500);
 }
 
+// ---- init force-graph ----------------------------------------------------
+function initGraph() {
+  const el = document.getElementById('cy');
+  refreshTheme();
+  fg = ForceGraph()(el)
+    .backgroundColor(COL.surface)
+    .nodeRelSize(4)
+    .nodeId('id')
+    .cooldownTicks(120)
+    .dagLevelDistance(64)
+    .linkDirectionalArrowLength(3.2)
+    .linkDirectionalArrowRelPos(1)
+    .linkWidth(l => (highlightActive && highlightLinks.has(l)) ? 2.2 : 0.8)
+    .linkColor(l => !highlightActive ? COL.edge
+      : (highlightLinks.has(l) ? COL.hl : COL.edgeFaded))
+    .linkDirectionalArrowColor(l => !highlightActive ? COL.edge
+      : (highlightLinks.has(l) ? COL.hl : COL.edgeFaded))
+    .nodeCanvasObject((n, ctx, scale) => {
+      const r = nodeRadius(n);
+      const on = !highlightActive || highlightNodes.has(n.id);
+      ctx.globalAlpha = on ? 1 : 0.12;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = n.missing ? COL.miss : genColor(n.gen);
+      ctx.fill();
+      if (n.missing) { ctx.setLineDash([2, 2]); ctx.lineWidth = 0.8; ctx.strokeStyle = COL.muted; }
+      else if (n.root) { ctx.lineWidth = 1.8; ctx.strokeStyle = COL.ink; }
+      else { ctx.lineWidth = 0.6; ctx.strokeStyle = COL.border; }
+      ctx.stroke(); ctx.setLineDash([]);
+      if (n.id === foundId) {
+        ctx.lineWidth = 2.2; ctx.strokeStyle = COL.hl;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5, 0, 2 * Math.PI); ctx.stroke();
+      }
+      if (scale > 1.4 || r * scale > 11) {
+        const fs = Math.max(3.5, 9 / scale);
+        ctx.font = `${fs}px system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillStyle = COL.ink;
+        ctx.fillText(n.id, n.x, n.y + r + 1.5);
+      }
+      ctx.globalAlpha = 1;
+    })
+    .nodePointerAreaPaint((n, color, ctx) => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(n.x, n.y, nodeRadius(n) + 2, 0, 2 * Math.PI); ctx.fill();
+    })
+    .onNodeClick(n => { highlightLineage(n.id); showInfo(n); fg.resumeAnimation(); })
+    .onBackgroundClick(() => { clearHighlight(); hideInfo(); fg.resumeAnimation(); })
+    .onNodeDrag(() => fg.resumeAnimation())              // keep sim live while dragging
+    .onNodeDragEnd(n => { n.fx = undefined; n.fy = undefined; relayout(); })  // spring back
+    .onEngineStop(() => { if (pendingFit) { pendingFit = false; fg.zoomToFit(500, 45); } });
+  // Compact the layout: cap long-range repulsion so separate components don't
+  // fling to the edges, shorten links, and add a gentle pull toward centre.
+  fg.d3Force('charge').strength(-24).distanceMax(200);
+  fg.d3Force('link').distance(22).strength(1);
+  fg.d3Force('gravity', centerGravity(0.06));
+  if (fg.d3VelocityDecay) fg.d3VelocityDecay(0.3);
+}
+
 // ---- wiring --------------------------------------------------------------
-document.getElementById('layoutSeg').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (b) runLayout(b.dataset.layout);
-});
-document.getElementById('fitBtn').addEventListener('click', () =>
-  cy.fit(cy.elements().not('.hidden'), 30));
-document.getElementById('themeBtn').addEventListener('click', toggleTheme);
-document.getElementById('hideIsolated').addEventListener('change', () => {
-  applyFilters(); runLayout(currentLayout);
-});
-document.getElementById('genMax').addEventListener('input', e => {
-  document.getElementById('genMaxVal').textContent = e.target.value;
-});
-document.getElementById('genMax').addEventListener('change', () => {
-  applyFilters(); runLayout(currentLayout);
-});
-document.getElementById('search').addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  const id = e.target.value.trim().toUpperCase();
-  cy.$('node.found').removeClass('found');
-  const n = cy.getElementById(id);
-  if (n && n.length) {
-    n.addClass('found'); highlightLineage(n); showInfo(n);
-    cy.animate({ center: { eles: n }, zoom: 1.4 }, { duration: 350 });
-  } else { banner('No structure "' + id + '" in this graph.'); }
-});
-document.getElementById('infoClose').addEventListener('click', hideInfo);
-document.getElementById('upload').addEventListener('change', e => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    let parsed;
-    try { parsed = JSON.parse(reader.result); }
-    catch (err) { banner('Not valid JSON.'); return; }
-    if (!validateGraph(parsed)) { banner('JSON missing nodes/edges arrays.'); return; }
-    loadGraph(parsed);
-    banner('Loaded ' + parsed.nodes.length + ' structures.');
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (!document.documentElement.getAttribute('data-theme')) applyThemeToCy();
-});
+function wire() {
+  document.getElementById('layoutSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (b) runLayout(b.dataset.layout);
+  });
+  document.getElementById('fitBtn').addEventListener('click', () => fg.zoomToFit(400, 45));
+  document.getElementById('reheatBtn').addEventListener('click', relayout);
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  document.getElementById('hideIsolated').addEventListener('change', applyFilters);
+  document.getElementById('genMax').addEventListener('input', e =>
+    document.getElementById('genMaxVal').textContent = e.target.value);
+  document.getElementById('genMax').addEventListener('change', applyFilters);
+  document.getElementById('search').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const id = e.target.value.trim().toUpperCase();
+    const n = nodeById.get(id);
+    const shown = n && fg.graphData().nodes.some(x => x.id === id);
+    if (shown) {
+      foundId = id; highlightLineage(id); showInfo(n); fg.resumeAnimation();
+      if (n.x != null) { fg.centerAt(n.x, n.y, 500); fg.zoom(2.2, 500); }
+    } else if (n) { banner('"' + id + '" is hidden by the current filters.'); }
+    else { banner('No structure "' + id + '" in this graph.'); }
+  });
+  document.getElementById('infoClose').addEventListener('click', hideInfo);
+  document.getElementById('upload').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try { parsed = JSON.parse(reader.result); }
+      catch (err) { banner('Not valid JSON.'); return; }
+      if (!validateGraph(parsed)) { banner('JSON missing nodes/edges arrays.'); return; }
+      loadGraph(parsed);
+      banner('Loaded ' + parsed.nodes.length + ' structures.');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (!document.documentElement.getAttribute('data-theme')) refreshTheme();
+  });
+  // responsive drawer
+  const menuBtn = document.getElementById('menuBtn');
+  const scrim = document.getElementById('scrim');
+  menuBtn.addEventListener('click', () => document.body.classList.toggle('drawer-open'));
+  scrim.addEventListener('click', () => document.body.classList.remove('drawer-open'));
+
+  // responsive canvas sizing
+  const stage = document.getElementById('cy');
+  const ro = new ResizeObserver(() => {
+    fg.width(stage.clientWidth).height(stage.clientHeight);
+  });
+  ro.observe(stage);
+}
 
 // ---- boot ----------------------------------------------------------------
+initGraph();
+wire();
+document.getElementById('genMax').setAttribute('max', '7');
 loadGraph(decodeData(DATA_B64));
+fg.width(document.getElementById('cy').clientWidth)
+  .height(document.getElementById('cy').clientHeight);
 </script>
 </body>
 </html>
